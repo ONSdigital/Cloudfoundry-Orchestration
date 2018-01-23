@@ -34,6 +34,14 @@ for i in `seq 1 $#`; do
 			JENKINS_APPNAME="$2"
 			shift 2
 			;;
+		--master_url)
+			JENKINS_MASTER_URL="$2"
+			shift 2
+			;;
+		--master-jnlp-port)
+			JENKINS_JNLP_PORT="$2"
+			shift 2
+			;;
 		-r|--release-type)
 			JENKINS_RELEASE_TYPE="$2"
 			shift 2
@@ -157,7 +165,7 @@ for m in CF_API_ENDPOINT CF_USERNAME CF_PASSWORD CF_SPACE CF_ORG; do
 done
 
 if [ -z "$CF_URL_SET" ] && ! uname -s | grep -q 'Linux'; then
-	FATAL "You must set -b|--cf-download-url to point to th location of the CF download for your machine"
+	FATAL 'You must set --cf-download-url to point to th location of the CF download for your machine'
 fi
 
 for _b in git unzip; do
@@ -166,6 +174,11 @@ for _b in git unzip; do
 		yum install -y "$_b"
 	fi
 done
+
+if [ -n "$JENKINS_MASTER_URL" ]; then
+	INFO 'Deploying Jenkins slave'
+	JENKINS_APPNAME="$JENKINS_SLAVE-slave"
+fi
 
 # Ensure we are clean
 [ -d deployment ] && rm -rf deployment
@@ -224,7 +237,7 @@ find META-INF -iname MANIFEST.MF -delete
 # Allow disabling of CSP
 if [ -n "$DISABLE_CSP" -a x"$DISABLE_CSP" != x"false" ]; then
 	# Sanity check...
-	[ -f WEB-INF/init.groovy ] && FATAL deployment/WEB-INF/init.groovy already exists
+	[ -f WEB-INF/init.groovy ] && FATAL 'deployment/WEB-INF/init.groovy already exists'
 
 	cat >WEB-INF/init.groovy <<EOF
 import hudson.model.*
@@ -265,14 +278,14 @@ if [ ! -f "$ORIGINAL_DIR/$SSH_PRIVATE_KEY" ]; then
 	# Ensure we have a key
 	ssh-keygen -t rsa -f "id_rsa" -N '' -C "$JENKINS_APPNAME"
 
-	INFO "You will need to add the following public key to the correct repositories to allow access"
+	INFO 'You will need to add the following public key to the correct repositories to allow access'
 	INFO "We'll print this again at the end in case you miss this time"
 	cat id_rsa.pub
 else
 	grep -q 'BEGIN DSA PRIVATE KEY' "$ORIGINAL_DIR/$SSH_PRIVATE_KEY" && KEY_NAME="id_dsa"
 	grep -q 'BEGIN RSA PRIVATE KEY' "$ORIGINAL_DIR/$SSH_PRIVATE_KEY" && KEY_NAME="id_rsa"
 
-	[ -z "$KEY_NAME" ] && FATAL Unable to determine ssh key type
+	[ -z "$KEY_NAME" ] && FATAL 'Unable to determine ssh key type'
 
 	cp "$ORIGINAL_DIR/$SSH_PRIVATE_KEY" $KEY_NAME
 
@@ -280,7 +293,7 @@ else
 	# Ensure our key has the correct permissions, otherwise ssh-keygen fails
 	chmod 0600 $KEY_NAME
 
-	INFO Calculating SSH public key from "$SSH_PRIVATE_KEY"
+	INFO "Calculating SSH public key from '$SSH_PRIVATE_KEY'"
 	ssh-keygen -f $KEY_NAME -y >$KEY_NAME.pub
 fi
 
@@ -361,13 +374,13 @@ EOF
 "$CF_CLI" push "$JENKINS_APPNAME"
 
 INFO
-INFO "Jenkins should be available shortly"
+INFO 'Jenkins should be available shortly'
 INFO
-INFO "Please wait whilst things startup... (this could take a while)"
+INFO 'Please wait whilst things startup... (this could take a while)'
 
 if [ -n "$DEBUG" ]; then
-	INFO "Debug has been enabled"
-	INFO "Output Jenkins logs. Please do not interrupt, things should exit once Jenkins has loaded correctly"
+	INFO 'Debug has been enabled'
+	INFO 'Output Jenkins logs. Please do not interrupt, things should exit once Jenkins has loaded correctly'
 
 	sleep 10
 fi
@@ -394,7 +407,7 @@ JENKINS_URL="`CF_COLOR=false "$CF_CLI" app "$JENKINS_APPNAME" | awk '/^routes:/{
 INFO
 INFO
 if [ x"$SUCCESS" = x"1" ]; then
-	INFO "Jenkins may still be loading, so hold tight"
+	INFO 'Jenkins may still be loading, so hold tight'
 	INFO
 	INFO "You will need to add the following public key to ${JENKINS_CONFIG_NEW_REPO:-$JENKINS_CONFIG_SEED_REPO}"
 	INFO
@@ -402,12 +415,12 @@ if [ x"$SUCCESS" = x"1" ]; then
 	INFO
 	# If we can find the log line of the failed plugin we could add it to the above AWK section and present a warning to load
 	# a given plugin - as we run the plugin load three times, we'd need a little bit of logic there
-	INFO "Even though Jenkins may have finished loading, its possible not all of the plugins were loaded. Unfortunately"
+	INFO 'Even though Jenkins may have finished loading, its possible not all of the plugins were loaded. Unfortunately'
 	INFO "this is difficult to detect - so run the 'Backup Jenkins' job and ensure the plugin list doesn't have any changes"
-	INFO "or at the very least looks sensible"
+	INFO 'or at the very least looks sensible'
 	# Need to make domain name configurable - env var of domain may be available, or easily set during deployment
 	INFO "Check if there is any data under: $JENKINS_URL/administrativeMonitor/OldData/manage"
-	INFO "if there is, check its sensible, otherwise redeploy"
+	INFO 'if there is, check its sensible, otherwise redeploy'
 	INFO
 	INFO "Your Jenkins should will shortly be accessible from $JENKINS_URL"
 else

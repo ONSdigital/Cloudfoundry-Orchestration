@@ -18,9 +18,6 @@ JENKINS_MEMORY="${JENKINS_MEMORY:-4096M}"
 # 2048M maximum allow storage
 JENKINS_DISK="${JENKINS_DISK:-2048M}"
 
-# Default private key
-SSH_PRIVATE_KEY='id_rsa'
-
 # Default to assuming we are running on Linux and x86_64
 CF_CLI_URL="${CF_CLI_URL:-https://cli.run.pivotal.io/stable?release=linux64-binary&source=github-rel}"
 CF_CLI="$PWD/work/cf"
@@ -94,11 +91,6 @@ for i in `seq 1 $#`; do
 		-X|--disable-csp-security)
 			DISABLE_CSP=1
 			shift
-			;;
-		-k|--ssh-private-key)
-			[ -f "$SSH_PRIVATE_KEY" ] || INFO "$SSH_PRIVATE_KEY does not exist so we'll generate one"
-			SSH_PRIVATE_KEY="$2"
-			shift 2
 			;;
 		-K|--ssh-keyscan-host)
 			[ -n "$SSH_KEYSCAN_HOSTS" ] && SSH_KEYSCAN_HOSTS="$SSH_KEYSCAN_HOSTS $2" || SSH_KEYSCAN_HOSTS="$2"
@@ -274,27 +266,21 @@ for i in $SSH_KEYSCAN_HOSTS; do
 	ssh-keyscan -T $SSH_KEYSCAN_TIMEOUT $i
 done | sort -u >>known_hosts
 
-if [ ! -f "$ORIGINAL_DIR/$SSH_PRIVATE_KEY" ]; then
+if [ ! -f "$ORIGINAL_DIR/id_rsa" ]; then
 	# Ensure we have a key
-	ssh-keygen -t rsa -f "id_rsa" -N '' -C "$JENKINS_APPNAME"
+	ssh-keygen -t rsa -f id_rsa -N '' -C "$JENKINS_APPNAME"
 
 	INFO 'You will need to add the following public key to the correct repositories to allow access'
 	INFO "We'll print this again at the end in case you miss this time"
 	cat id_rsa.pub
 else
-	grep -q 'BEGIN DSA PRIVATE KEY' "$ORIGINAL_DIR/$SSH_PRIVATE_KEY" && KEY_NAME="id_dsa"
-	grep -q 'BEGIN RSA PRIVATE KEY' "$ORIGINAL_DIR/$SSH_PRIVATE_KEY" && KEY_NAME="id_rsa"
-
-	[ -z "$KEY_NAME" ] && FATAL 'Unable to determine ssh key type'
-
-	cp "$ORIGINAL_DIR/$SSH_PRIVATE_KEY" $KEY_NAME
-
+	cp "$ORIGINAL_DIR/id_rsa" id_rsa
 
 	# Ensure our key has the correct permissions, otherwise ssh-keygen fails
-	chmod 0600 $KEY_NAME
+	chmod 0600 id_rsa
 
-	INFO "Calculating SSH public key from '$SSH_PRIVATE_KEY'"
-	ssh-keygen -f $KEY_NAME -y >$KEY_NAME.pub
+	INFO "Calculating SSH public key from 'id_rsa'"
+	ssh-keygen -f id_rsa -y >id_rsa.pub
 fi
 
 mkdir -p .profile.d
@@ -327,11 +313,7 @@ cd -
 [ -d "$REAL_HOME/.ssh" ] || mkdir -m 0700 -p $REAL_HOME/.ssh
 
 # Configure SSH
-for i in dsa rsa; do
-	[ -f "id_$i" -a -f "id_$i.pub" ] || continue
-
-	mv id_$i id_$i.pub $REAL_HOME/.ssh/
-done
+mv id_rsa id_rsa.pub $REAL_HOME/.ssh/
 
 cat known_hosts >>$REAL_HOME/.ssh/known_hosts
 
@@ -411,7 +393,7 @@ if [ x"$SUCCESS" = x"1" ]; then
 	INFO
 	INFO "You will need to add the following public key to ${JENKINS_CONFIG_NEW_REPO:-$JENKINS_CONFIG_SEED_REPO}"
 	INFO
-	cat "$SSH_PRIVATE_KEY"
+	cat id_rsa
 	INFO
 	# If we can find the log line of the failed plugin we could add it to the above AWK section and present a warning to load
 	# a given plugin - as we run the plugin load three times, we'd need a little bit of logic there

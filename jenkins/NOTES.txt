@@ -1,0 +1,1 @@
+SSH_PRIVATE_KEY is now assumed to be $PWD/id_rsa

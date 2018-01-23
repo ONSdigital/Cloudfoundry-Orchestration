@@ -372,7 +372,7 @@ if [ -n "$DEBUG" ]; then
 	sleep 10
 fi
 
-"$CF_CLI" logs "$JENKINS_APPNAME" | tee "$JENKINS_APPNAME-deploy.log" | awk -v debug="$DEBUG" '{
+CF_COLOR=false "$CF_CLI" logs "$JENKINS_APPNAME" | tee "$JENKINS_APPNAME-deploy.log" | awk -v debug="$DEBUG" '{
 	if($0 ~ /Jenkins is fully up and running/)
 		exit 0
 
@@ -384,6 +384,8 @@ fi
 		exit 1
 	}
 }' && SUCCESS=1 || SUCCESS=0
+
+JENKINS_URL="`CF_COLOR=false "$CF_CLI" app "$JENKINS_APPNAME" | awk '/^routes:/{printf("https://%s",$NF)}'`"
 
 # We try our best to get things to work properly, but both Jenkins and Cloudfoundry work against us:
 # Jenkins, often, doesn't correctly load all of the plugins - so we run the plugin loading 3 times
@@ -404,10 +406,10 @@ if [ x"$SUCCESS" = x"1" ]; then
 	INFO "this is difficult to detect - so run the 'Backup Jenkins' job and ensure the plugin list doesn't have any changes"
 	INFO "or at the very least looks sensible"
 	# Need to make domain name configurable - env var of domain may be available, or easily set during deployment
-	INFO "Check if there is any data under: https://$JENKINS_APPNAME.apps.${CF_INSTANCE_DOMAIN:-CF_DOMAIN}/administrativeMonitor/OldData/manage"
+	INFO "Check if there is any data under: $JENKINS_URL/administrativeMonitor/OldData/manage"
 	INFO "if there is, check its sensible, otherwise redeploy"
 	INFO
-	INFO "Your Jenkins should will shortly be accessible from https://$JENKINS_APPNAME.apps.${CF_INSTANCE_DOMAIN:-CF_DOMAIN}"
+	INFO "Your Jenkins should will shortly be accessible from $JENKINS_URL"
 else
 	tail -n20 "$JENKINS_APPNAME-deploy-deploy.log"
 

@@ -3,7 +3,7 @@
 #
 set -e
 
-COMMON_SH="`basename $0/jenkins-common.sh`"
+COMMON_SH="`dirname "$0"`/jenkins-common.sh"
 
 if [ ! -f "$COMMON_SH" ]; then
 	echo "Unable to find $COMMON_SH"
@@ -78,6 +78,14 @@ for i in `seq 1 $#`; do
 			;;
 		--deploy-scripts-repo)
 			DEPLOY_JENKINS_SCRIPTS_REPO="$2"
+			shift 2
+			;;
+		--jenkins-stable-url)
+			JENKINS_STABLE_WAR_URL="$2"
+			shift 2
+			;;
+		--jenkins-latest-url)
+			JENKINS_LATEST_WAR_URL="$2"
 			shift 2
 			;;
 		-P|--plugins)
@@ -160,19 +168,19 @@ cd deployment
 
 configure_git_repo jenkins_home "$JENKINS_CONFIG_SEED_REPO" "${JENKINS_CONFIG_NEW_REPO:-NONE}" "${DEPLOY_JENKINS_CONFIG_SEED_REPO:-NONE}" "${DEPLOY_JENKINS_CONFIG_NEW_REPO:-NONE}"
 
+git_push_repo_cleanup jenkins_home
+
 # Disable initial config.xml - it'll get renamed by init.groovy
 mv jenkins_home/config.xml jenkins_home/_config.xml
 
 INFO 'Installing initial plugin(s)'
 [ -d jenkins_home/plugins ] || mkdir -p jenkins_home/plugins
-OLDIFS="$IFS"
-IFS=,
 
 cd jenkins_home/plugins
 
 download_plugins ${PLUGINS:-$DEFAULT_PLUGINS}
 
-cd -
+cd ..
 
 configure_git_repo jenkins_scripts "$JENKINS_SCRIPTS_REPO" "${DEPLOY_JENKINS_SCRIPTS_REPO:-NONE}"
 
@@ -181,7 +189,7 @@ tar -zcf jenkins_home_scripts.tgz jenkins_home jenkins_scripts
 
 rm -rf jenkins_home jenkins_scripts
 
-download_jenkins_war "$JENKINS_RELEASE_TYPE.war"
+download_jenkins_war "$JENKINS_RELEASE_TYPE"
 
 # Explode the jar file
 unzip ../jenkins-$JENKINS_RELEASE_TYPE.war
@@ -325,6 +333,9 @@ git pull origin master || :
 
 cd -
 EOF
+
+echo TEST TEST TEST TEST
+exit
 
 cf_login
 

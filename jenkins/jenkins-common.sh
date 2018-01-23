@@ -57,8 +57,8 @@ download_jenkins_war(){
 			;;
 	esac
 
-	if ! curl --progress-bar -L -o jenkins-$jenkins_release_type.war "$jenkins_war_url"; then
-		[ -f "jenkins-$jenkins_release_type.war" ] && rm -f jenkins-$jenkins_release_type.war
+	if ! curl --progress-bar -L -o jenkins-$release_type.war "$jenkins_war_url"; then
+		[ -f "jenkins-$release_type.war" ] && rm -f jenkins-$release_type.war
 
 		FATAL "Downloading $jenkins_war_url failed"
 	fi
@@ -90,12 +90,15 @@ configure_git_repo(){
 	local git_deploy_seed_repo="$4"
 	local git_deploy_new_repo="$5"
 
-	local final_repo
+	local final_repo repo_name
 
 	# Minimal parameter checking
 	[ -z "$git_seed_repo" ] && FATAL 'Not enough parameters'
 
 	[ -d "$repo_dir" ] && FATAL "$repo_dir already exists"
+
+	INFO 'Performing initial git setup'
+	git config --global push.default || git config --global push.default simple
 
 	INFO 'Initialising repository'
 	mkdir "$repo_dir"
@@ -110,33 +113,74 @@ configure_git_repo(){
 		eval repo_url="\$git_${_r}_repo"
 
 		# Only act if we have been given a repo
-		if [ x"$repo_url" = x'NONE' ]; then
-			unset "git_${_r}_repo"
+		if [ -z "$repo_url" -o x"$repo_url" = x'NONE' ]; then
+			[ x"$repo_url" = x'NONE' ] && unset "git_${_r}_repo"
 
 			continue
 		fi
 
 		# Final/deployed repo
-		[ x"$_r" = x'seed' -o x"$_r" = x'new' ] && git remote add origin "$_r"
+		[ x"$_r" = x'seed' -o x"$_r" = x'new' ] && git_remote_update origin "$repo_url"
 
-		# Predeployment seed repo
-		[ x"$_r" = x'seed' -o x"$_r" = x'deploy_seed' ] && git remote add predeploy_seed "$_r"
+		if [ x"$_r" = x'seed' -o x"$_r" = x'deploy_seed' ]; then
+			# Predeployment seed repo
+			repo_name='predeploy_seed'
+		elif [ x"$_r" = x'new' -o x"$_r" = x'deploy_new' ]; then
+			# Predeployment new repo
+			repo_name='predeploy_new'
+		else
+			# Should never happen
+			FATAL "Unknown repo name: $_r"
+		fi
 
-		# Predeployment new repo
-		[ x"$_r" = x'new' -o x"$_r" = x'deploy_new' ] && git remote add predeploy_new "$_r"
+		git_remote_update "$repo_name" "$repo_url"
+
 	done
 
-	if [ -n "$git_deploy_seed_repo" ]; then
-		git pull predeploy_seed;
-
-	elif [ -n "$git_seed_repo" ]; then
-		git pull origin
-
-	else
-		FATAL 'No remote repository to pull from'
-	fi
+	git pull predeploy_seed master;
 
 	cd -
+}
+
+git_push_repo_cleanup(){
+	local repo_dir="$1"
+
+	# Basic sanity checking
+	[ -z "$repo_dir" ] && FATAL 'Not enough parameters'
+	[ -d "$repo_dir" ] || FATAL "Repository does not exist: $repo_dir"
+
+	cd "$repo_dir"
+
+	if git remote | grep -Eq '^predeploy_new$'; then
+		git push --set-upstream predeploy_new master
+
+	elif git remote | grep -Eq '^origin$'; then
+		git push --set-upstream origin master
+	else
+		# Should never happen
+		FATAL 'No repository to push to'
+	fi
+
+	INFO 'Potentially, removing deployment repositories'
+	for _r in `git remote`; do
+		[ x"$_r" = x'origin' ] && continue
+
+		git remote remove "$_r"
+	done
+
+	cd -
+}
+
+git_remote_update(){
+	local remote="$1"
+	local url="$2"
+
+	[ -z "$url" ] && FATAL 'Not enough parameters'
+
+	# Do we have an existing remote we need to remote?
+	git remote | grep -Eq "^$remote$" && git remote remove "$remote"
+
+	git remote add "$remote" "$url"
 }
 
 download_plugins(){

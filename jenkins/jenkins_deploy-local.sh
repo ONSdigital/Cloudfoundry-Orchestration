@@ -1,9 +1,7 @@
-
-# More or less a copy of jenkins_deploy_cf.sh, but with the CF bits removed - this is a temporary solution until CF is up
-set +x
+#!/bin/sh
 set -e
 
-COMMON_SH="`basename $0/jenkins-common.sh`"
+COMMON_SH="`dirname "$0"`/jenkins-common.sh"
 
 if [ ! -f "$COMMON_SH" ]; then
 	echo "Unable to find $COMMON_SH"
@@ -19,7 +17,7 @@ ROOT_GROUP="${ROOT_USER:-wheel}"
 JENKINS_USER="${JENKINS_USER:-jenkins}"
 JENKINS_GROUP="${JENKINS_GROUP:-jenkins}"
 
-[ x"$USER" != x"$ROOT_USER" ] && FATAL This script MUST be run as $ROOT_USER
+whoami | grep -Eq "^$ROOT_USER$" || FATAL This script MUST be run as $ROOT_USER
 
 LOG_ROTATE_COUNT='10'
 LOG_ROTATE_SIZE='10m'
@@ -27,6 +25,9 @@ LOG_ROTATE_FREQUENCY='daily'
 # Fonts & fontconfig are required for AWT
 BASE_PACKAGES='git java-1.8.0-openjdk-headless httpd dejavu-sans-fonts fontconfig unzip'
 SSH_KEYSCAN_TIMEOUT='10'
+
+FIX_FIREWALL=1
+FIX_SELINUX=1
 
 # Parse options
 for i in `seq 1 $#`; do
@@ -69,9 +70,21 @@ for i in `seq 1 $#`; do
 			DEPLOY_JENKINS_SCRIPTS_REPO="$2"
 			shift 2
 			;;
-		-F|--fix-firewall)
-			FIX_FIREWALL=1
+		--no-fix-firewall)
+			unset FIX_FIREWALL
 			shift
+			;;
+		--no-selinux)
+			unset FIX_SELINUX
+			shift
+			;;
+		--jenkins-stable-url)
+			JENKINS_STABLE_WAR_URL="$2"
+			shift 2
+			;;
+		--jenkins-latest-url)
+			JENKINS_LATEST_WAR_URL="$2"
+			shift 2
 			;;
 		-P|--plugins)
 			# comma separated list of plugins to preload
@@ -117,22 +130,33 @@ mkdir -p "$DEPLOYMENT_DIR"/{bin,config,.ssh,.git} "/var/log/$JENKINS_APPNAME"
 
 cd "$DEPLOYMENT_DIR"
 
-configure_git_repo "$JENKINS_CONFIG_SEED_REPO" "${JENKINS_CONFIG_NEW_REPO:-NONE}" "${DEPLOY_JENKINS_CONFIG_SEED_REPO:-NONE}" "${DEPLOY_JENKINS_CONFIG_NEW_REPO:-NONE}"
+configure_git_repo jenkins_home "$JENKINS_CONFIG_SEED_REPO" "${JENKINS_CONFIG_NEW_REPO:-NONE}" "${DEPLOY_JENKINS_CONFIG_SEED_REPO:-NONE}" "${DEPLOY_JENKINS_CONFIG_NEW_REPO:-NONE}"
+
+git_push_repo_cleanup jenkins_home
 
 INFO Setting up Jenkins to install required plugins
-cd $DEPLOYMENT_DIR/jenkins_home
+cd "$DEPLOYMENT_DIR/jenkins_home"
 cp _init.groovy init.groovy
+
+# init.groovy will rename this when its run
 mv config.xml _config.xml
+
+cd ..
 
 configure_git_repo jenkins_scripts "$JENKINS_SCRIPTS_REPO" "${DEPLOY_JENKINS_SCRIPTS_REPO:-NONE}"
 
-cd jenkins_home/plugins
+cd "$DEPLOYMENT_DIR"
+
+INFO 'Installing initial plugin(s)'
+[ -d jenkins_home/plugins ] || mkdir -p jenkins_home/plugins
+
+cd "$DEPLOYMENT_DIR/jenkins_home/plugins"
 
 download_plugins ${PLUGINS:-$DEFAULT_PLUGINS}
 
-cd -
+cd "$DEPLOYMENT_DIR"
 
-download_jenkins_war "$JENKINS_RELEASE_TYPE.war"
+download_jenkins_war "$JENKINS_RELEASE_TYPE"
 
 INFO "Checking if all required packages are installed - this may take a while"
 for _i in $BASE_PACKAGES; do
@@ -142,8 +166,10 @@ for _i in $BASE_PACKAGES; do
 	fi
 done
 
-INFO Determining SELinux status
-sestatus 2>&1 >/dev/null && SELINUX_ENABLED=true
+if [ -n "$FIX_SELINUX" ]; then
+	INFO Determining SELinux status
+	sestatus 2>&1 >/dev/null && SELINUX_ENABLED=true
+fi
 
 INFO "Checking if we need to add the '$JENKINS_USER' user"
 if ! id $JENKINS_USER 2>&1 >/dev/null; then
@@ -157,10 +183,6 @@ INFO Extracting Jenkins CLI
 unzip -qqj "$DEPLOYMENT_DIR/jenkins-$JENKINS_RELEASE_TYPE.war" WEB-INF/jenkins-cli.jar
 
 cd - 2>&1 >/dev/null
-
-
-INFO 'Installing Jenkins WAR file'
-cp "jenkins-$JENKINS_RELEASE_TYPE.war" "$DEPLOYMENT_DIR"
 
 INFO Creating required directories
 [ -d ~/.ssh ] || mkdir -p 0700 ~/.ssh

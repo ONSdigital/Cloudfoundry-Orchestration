@@ -21,6 +21,10 @@ JENKINS_DISK="${JENKINS_DISK:-2048M}"
 # Default private key
 SSH_PRIVATE_KEY='id_rsa'
 
+# Default to assuming we are running on Linux and x86_64
+CF_CLI_URL="${CF_CLI_URL:-https://cli.run.pivotal.io/stable?release=linux64-binary&source=github-rel}"
+CF_CLI="$PWD/work/cf"
+
 # Parse options
 for i in `seq 1 $#`; do
 	[ -z "$1" ] && break
@@ -38,11 +42,6 @@ for i in `seq 1 $#`; do
 			JENKINS_MEMORY="$2"
 			shift 2
 			;;
-		-b|--cf-download-url)
-			CF_URL="$2"
-			CF_URL_SET=1
-			shift 2
-			;;
 		-d|--disk-quota)
 			JENKINS_DISK="$2"
 			shift 2
@@ -53,15 +52,6 @@ for i in `seq 1 $#`; do
 			;;
 		--deploy-config-repo)
 			DEPLOY_JENKINS_CONFIG_NEW_REPO="$2"
-			shift 2
-			;;
-		-k|--ssh-private-key)
-			[ -f "$SSH_PRIVATE_KEY" ] || INFO "$SSH_PRIVATE_KEY does not exist so we'll generate one"
-			SSH_PRIVATE_KEY="$2"
-			shift 2
-			;;
-		-K|--ssh-keyscan-host)
-			[ -n "$SSH_KEYSCAN_HOSTS" ] && SSH_KEYSCAN_HOSTS="$SSH_KEYSCAN_HOSTS $2" || SSH_KEYSCAN_HOSTS="$2"
 			shift 2
 			;;
 		-C|--config-seed-repo)
@@ -97,23 +87,36 @@ for i in `seq 1 $#`; do
 			DISABLE_CSP=1
 			shift
 			;;
-		-D|--debubg)
+		-k|--ssh-private-key)
+			[ -f "$SSH_PRIVATE_KEY" ] || INFO "$SSH_PRIVATE_KEY does not exist so we'll generate one"
+			SSH_PRIVATE_KEY="$2"
+			shift 2
+			;;
+		-K|--ssh-keyscan-host)
+			[ -n "$SSH_KEYSCAN_HOSTS" ] && SSH_KEYSCAN_HOSTS="$SSH_KEYSCAN_HOSTS $2" || SSH_KEYSCAN_HOSTS="$2"
+			shift 2
+			;;
+		-D|--debug)
 			DEBUG=1
 			shift
 			;;
-		-a|--cf-api-endpoint)
+		--cf-cli-url)
+			CF_CLI_URL="$2"
+			shift 2
+			;;
+		--cf-api-endpoint)
 			CF_API_ENDPOINT="$2"
 			shift 2
 			;;
-		-u|--cf-username)
+		--cf-username)
 			CF_USERNAME="$2"
 			shift 2
 			;;
-		-p|--cf-password)
+		--cf-password)
 			CF_PASSWORD="$2"
 			shift 2
 			;;
-		-s|--cf-space)
+		--cf-space)
 			shift
 			for j in $@; do
 				case "$j" in
@@ -126,7 +129,7 @@ for i in `seq 1 $#`; do
 				esac
 			done
 			;;
-		-o|--cf-organisation)
+		--cf-organisation)
 			shift
 			for j in $@; do
 				case "$j" in
@@ -157,12 +160,27 @@ if [ -z "$CF_URL_SET" ] && ! uname -s | grep -q 'Linux'; then
 	FATAL "You must set -b|--cf-download-url to point to th location of the CF download for your machine"
 fi
 
-which unzip >/dev/null 2>&1 || FATAL 'Please install unzip: sudo yum install -y unzip'
+for _b in git unzip; do
+	if ! which $_b >/dev/null 2>&1; then
+		whoami | grep -Eq '^root$' || FATAL "You must be root to install $_b. Or you can install $_b and re-run this script"
+		yum install -y "$_b"
+	fi
+done
 
 # Ensure we are clean
 [ -d deployment ] && rm -rf deployment
+[ -d work ] || rm -rf work
 
-mkdir -p deployment
+mkdir -p deployment work
+
+INFO 'Installing CF CLI'
+if ! curl -Lo work/cf.tar.gz "$CF_CLI_URL"; then
+	rm -f work/cf.tar.gz
+
+	FATAL "Downloading CF CLI from '$CF_CLI_URL' failed"
+fi
+
+tar -zxvf work/cf.tar.gz -C work cf
 
 cd deployment
 
@@ -180,7 +198,7 @@ cd jenkins_home/plugins
 
 download_plugins ${PLUGINS:-$DEFAULT_PLUGINS}
 
-cd ..
+cd ../..
 
 configure_git_repo jenkins_scripts "$JENKINS_SCRIPTS_REPO" "${DEPLOY_JENKINS_SCRIPTS_REPO:-NONE}"
 
@@ -189,7 +207,11 @@ tar -zcf jenkins_home_scripts.tgz jenkins_home jenkins_scripts
 
 rm -rf jenkins_home jenkins_scripts
 
+cd ../
+
 download_jenkins_war "$JENKINS_RELEASE_TYPE"
+
+cd deployment
 
 # Explode the jar file
 unzip ../jenkins-$JENKINS_RELEASE_TYPE.war
@@ -334,16 +356,9 @@ git pull origin master || :
 cd -
 EOF
 
-echo TEST TEST TEST TEST
-exit
+"$CF_CLI" login -a "$CF_API_ENDPOINT" -u "$CF_USERNAME" -p "$CF_PASSWORD" -o "$CF_ORG" -s "$CF_SPACE"
 
-cf_login
-
-cf_create_org
-
-cf_create_space
-
-cf_push "$JENKINS_APPNAME"
+"$CF_CLI" push "$JENKINS_APPNAME"
 
 INFO
 INFO "Jenkins should be available shortly"
@@ -357,7 +372,7 @@ if [ -n "$DEBUG" ]; then
 	sleep 10
 fi
 
-$CF logs "$JENKINS_APPNAME" | tee "$JENKINS_APPNAME-deploy.log" | awk -v debug="$DEBUG" '{
+"$CF_CLI" logs "$JENKINS_APPNAME" | tee "$JENKINS_APPNAME-deploy.log" | awk -v debug="$DEBUG" '{
 	if($0 ~ /Jenkins is fully up and running/)
 		exit 0
 

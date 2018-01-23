@@ -4,10 +4,6 @@
 set -e
 
 #############################################
-FATAL_COLOUR='\e[1;31m'
-INFO_COLOUR='\e[1;36m'
-NONE_COLOUR='\e[0m'
-
 JENKINS_APPNAME="${JENKINS_APPNAME:-jenkins}"
 JENKINS_RELEASE_TYPE="${JENKINS_RELEASE_TYPE:-STABLE}"
 
@@ -21,25 +17,18 @@ DEFAULT_PLUGINS="https://updates.jenkins-ci.org/latest/matrix-auth.hpi"
 
 #############################################
 FATAL(){
-	COLOUR FATAL
+	# echo -ne is a {Linux,Bash}-ism
+	echo -ne $FATAL_COLOUR
 	echo "FATAL $@"
-	COLOUR NONE
+	echo -ne $NONE_COLOUR
 
 	exit 1
 }
 
 INFO(){
-	COLOUR INFO
+	echo -ne $FATAL_COLOUR
 	echo "INFO $@"
-	COLOUR NONE
-}
-
-COLOUR(){
-	echo "$TERM" | grep -qE "^(xterm|rxvt)(-256color)?$" || return 0
-
-	eval colour="\$${1}_COLOUR"
-
-	echo -ne "$colour"
+	echo -ne $NONE_COLOUR
 }
 
 download_jenkins_war(){
@@ -203,6 +192,16 @@ download_plugins(){
 # Detect the SED variant - this is only really useful when running jenkins/jenkins_deploy.sh
 # Some BSD sed variants don't handle -r they use -E for extended regular expression
 sed </dev/null 2>&1 | grep -q GNU && SED_OPT='-r' || SED_OPT='-E'
+
+# Configure colour console - if possible
+COLOURS="`tput colors`"
+
+if [ 0$COLOURS -ge 8 ]; then
+	FATAL_COLOUR='\e[1;31m'
+	INFO_COLOUR='\e[1;36m'
+	NONE_COLOUR='\e[0m'
+fi
+
 
 # Ensure we have a sensible umask
 umask 022

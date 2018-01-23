@@ -50,10 +50,6 @@ for i in `seq 1 $#`; do
 			DEPLOY_JENKINS_CONFIG_NEW_REPO="$2"
 			shift 2
 			;;
-		-K|--ssh-keyscan-host)
-			[ -n "$SSH_KEYSCAN_HOSTS" ] && SSH_KEYSCAN_HOSTS="$SSH_KEYSCAN_HOSTS $2" || SSH_KEYSCAN_HOSTS="$2"
-			shift 2
-			;;
 		-C|--config-seed-repo)
 			JENKINS_CONFIG_SEED_REPO="$2"
 			shift 2
@@ -91,26 +87,15 @@ for i in `seq 1 $#`; do
 			PLUGINS="$DEFAULT_PLUGINS,$2"
 			shift 2
 			;;
+		-K|--ssh-keyscan-host)
+			[ -n "$SSH_KEYSCAN_HOSTS" ] && SSH_KEYSCAN_HOSTS="$SSH_KEYSCAN_HOSTS $2" || SSH_KEYSCAN_HOSTS="$2"
+			shift 2
+			;;
 		*)
 			FATAL "Unknown option $1"
 			;;
 	esac
 done
-
-case "$JENKINS_RELEASE_TYPE" in
-	[Ll][Aa][Tt][Ee][Ss][Tt])
-		JENKINS_WAR_URL="$JENKINS_LATEST_WAR_URL"
-		;;
-
-	[Ss][Tt][Aa][Bb][Ll][Ee])
-		JENKINS_WAR_URL="$JENKINS_STABLE_WAR_URL"
-		;;
-	*)
-		echo "Unknown Jenkins type: $JENKINS_RELEASE_TYPE"
-		echo "Valid types: latest or stable"
-
-		exit 1
-esac
 
 INSTALL_BASE_DIR="${INSTALL_BASE_DIR:-/opt}"
 DEPLOYMENT_DIR="$INSTALL_BASE_DIR/$JENKINS_APPNAME"

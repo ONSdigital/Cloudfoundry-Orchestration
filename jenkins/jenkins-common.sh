@@ -216,8 +216,10 @@ if [ 0$COLOURS -ge 8 ]; then
 	NONE_COLOUR='\e[0m'
 fi
 
-INFO 'Performing initial git setup'
-git config --global push.default || git config --global push.default simple
+if git config --global push.default >/dev/null 2>&1; then
+	INFO 'Performing initial git setup'
+	git config --global push.default simple
+fi
 
 # Ensure we have a sensible umask
 umask 022

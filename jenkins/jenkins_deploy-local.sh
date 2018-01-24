@@ -210,7 +210,7 @@ EOF
 
 	if [ -n "$FIX_FIREWALL" ]; then
 		INFO 'Permitting access to HTTP'
-		firewall-cmd --add-service=http --permanent
+		firewall-cmd --permanent --add-service=http
 
 		INFO 'Reloading firewall'
 		firewall-cmd --reload
@@ -441,18 +441,18 @@ if [ -z "$JENKINS_MASTER_URL" -a -n "$FIX_FIREWALL" -a -n "$CONFIGURE_SLAVE_CONN
 	[ -z "$JENKINS_JNLP_PORT" ] && FATAL 'Unable to determine Jenkins JNLP port, this can be completed later if required'
 
 	INFO 'Configuring slave connectivity'
-	if firewall-cmd --info-service=jenkins-jnlp 2>&1 >/dev/null; then
+	if firewall-cmd --info-service=jenkins-jnlp >/dev/null 2>&1; then
 		INFO 'Removing existing JNLP configuration'
-		firewall-cmd --delete-service=jenkins-jnlp
+		firewall-cmd --permanent --delete-service=jenkins-jnlp
 
 		# If we don't reload the firewall when we come to add the service again it complains it already exists
 		firewall-cmd --reload
 	fi
 
-	firewall-cmd --new-service=jenkins-jnlp --permanent
-	firewall-cmd --service=jenkins-jnlp --add-port="$JENKINS_JNLP_PORT/tcp" --permanent
-	firewall-cmd --service=jenkins-jnlp --set-short='Jenkins Slave Connectivity' --permanent
-	firewall-cmd --add-service=jenkins-jnlp --permanent
+	firewall-cmd --permanent --new-service=jenkins-jnlp
+	firewall-cmd --permanent --service=jenkins-jnlp --add-port="$JENKINS_JNLP_PORT/tcp"
+	firewall-cmd --permanent --service=jenkins-jnlp --set-short='Jenkins Slave Connectivity'
+	firewall-cmd --permanent --add-service=jenkins-jnlp
 
 	INFO 'Reloading firewall'
 	firewall-cmd --reload

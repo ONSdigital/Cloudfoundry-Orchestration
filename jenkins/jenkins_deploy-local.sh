@@ -258,7 +258,15 @@ if [ -z "$1" -o x"$1" != x'safe' ]; then
 fi
 EOF
 
-sed $SED_OPT -e 's/(-C|--config-seed-repo) ([^ ]+)( |$)/--config-repo \2/g' <<EOF >>"$DEPLOYMENT_DIR/bin/update.sh"
+awk '{
+	if($0 ~ / (-C|--config-seed-repo) / && $0 ~ / (-c|--config-repo) /){
+		print "YES"
+		gsub(" (-C|--config-seed-repo) [^ ]+($| )"," ")
+		gsub(" (-c|--config-repo) "," --config-seed-repo ")
+	}
+
+	print $0
+}' <<EOF >>"$DEPLOYMENT_DIR/bin/update.sh"
 $INVOCATION_ORIGINAL
 EOF
 

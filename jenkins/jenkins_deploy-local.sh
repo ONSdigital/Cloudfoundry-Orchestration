@@ -1,4 +1,5 @@
 #!/bin/sh
+#
 set -e
 
 COMMON_SH="`dirname "$0"`/jenkins-common.sh"
@@ -29,6 +30,11 @@ SSH_KEYSCAN_TIMEOUT='10'
 CONFIGURE_SLAVE_CONNECTIVITY=1
 FIX_FIREWALL=1
 FIX_SELINUX=1
+
+# In seconds
+JENKINS_START_DELAY='120'
+JENKINS_JNLP_CHECK_DELAY='10'
+JENKINS_JNLP_CHECK_ATTEMPTS='100'
 
 # Parse options
 for i in `seq 1 $#`; do
@@ -155,8 +161,8 @@ if [ -n "$JENKINS_MASTER_URL" ]; then
 
 	mkdir "$DEPLOYMENT_DIR/slave"
 
-	INFO 'Determing JNLP port'
-	JENKINS_JNLP_PORT="`curl -i "$JENKINS_MASTER_URL/tcpSlaveAgentListener/" | awk '/^X-Jenkins-JNLP-Port:/{print $NF}'`"
+	INFO 'Determining JNLP port'
+	JENKINS_JNLP_PORT="`curl -fi "$JENKINS_MASTER_URL/tcpSlaveAgentListener/" | awk '/^X-Jenkins-JNLP-Port:/{print $NF}'`"
 
 	[ -z "$JENKINS_JNLP_PORT" ] && FATAL 'Unable to determine Jenkins JNLP port'
 else
@@ -210,48 +216,7 @@ EOF
 		firewall-cmd --reload
 	fi
 
-	# Suck in the SSH keys for our Git repos - we also add it to ~/.ssh/known_hosts to silence
-	# the initial clone as this is done as the current user
-	INFO "Attempting to add SSH keys to $DEPLOYMENT_DIR/.ssh/known_hosts & ~/.ssh/known_hosts"
-	for i in "$JENKINS_CONFIG_REPO" "$JENKINS_CONFIG_SEED_REPO" "$JENKINS_SCRIPTS_REPO"; do
-		# We only want to scan a host if we are connecting via SSH
-		echo $i | grep -Eq '^((https?|file|git)://|~?/)' && continue
-
-		# Silence ssh-keyscan
-		echo $i | sed -e $SED_OPT 's,^[a-z]+://([^@]+@)([a-z0-9\.-]+)([:/].*)?$,\2,g' | \
-			( xargs ssh-keyscan -T $SSH_KEYSCAN_TIMEOUT ) 2>/dev/null | tee -a ~/.ssh/known_hosts >>"$DEPLOYMENT_DIR/.ssh/known_hosts"
-	done
-
-
-	# ... and any extra keys
-	for i in $SSH_KEYSCAN_HOSTS; do
-		INFO "Adding additional $i host to $DEPLOYMENT_DIR/.ssh/known_hosts"
-		ssh-keyscan -T $SSH_KEYSCAN_TIMEOUT $i 2>/dev/null
-
-	done | sort -u | tee -a ~/.ssh/known_hosts >>"$DEPLOYMENT_DIR/.ssh/known_hosts"
-
-	INFO 'Fixing any duplicate known_hosts entries'
-	for _d in ~/.ssh/known_hosts "$DEPLOYMENT_DIR/.ssh/known_hosts"; do
-		FIX_DUPLICATES="`mktemp /tmp/SSH.XXXX`"
-
-		sort -u "$DEPLOYMENT_DIR/.ssh/known_hosts" >"$FIX_DUPLICATES"
-
-		if ! diff -q "$FIX_DUPLICATES" ~/.ssh/known_hosts 2>&1 >/dev/null; then
-			INFO 'Removing duplicates'
-			mv -f "$FIX_DUPLICATES" ~/.ssh/known_hosts
-		fi
-
-		[ -f "$FIX_DUPLICATES" ] && rm -rf "$FIX_DUPLICATES"
-	done
-
-	if [ -n "$SELINUX_ENABLED" ]; then
-		INFO 'Fixing SELinux permissions'
-		chcon --reference=/etc/sysconfig/network "/etc/sysconfig/$JENKINS_APPNAME"
-		chcon --reference=/usr/lib/systemd/system/system.slice "/usr/lib/systemd/system/$JENKINS_APPNAME.service"
-
-		INFO 'Enabling SELinux reverse proxy permissions'
-		setsebool -P httpd_can_network_connect 1
-	fi
+	scan_ssh_hosts $JENKINS_CONFIG_REPO $JENKINS_CONFIG_SEED_REPO $JENKINS_SCRIPTS_REPO $SSH_KEYSCAN_HOSTS >"$DEPLOYMENT_DIR/.ssh/known_hosts"
 
 	INFO 'Enabling and starting httpd'
 	systemctl start httpd
@@ -271,7 +236,7 @@ export JENKINS_LOCATION="localhost:8080"
 EOF
 
 INFO 'Creating update script'
-cat >"$DEPLOYMENT_DIR/sh/update.sh" <<EOF
+cat >"$DEPLOYMENT_DIR/bin/update.sh" <<EOF
 #!/bin/sh
 #
 # Update script
@@ -293,7 +258,7 @@ if [ -z "$1" -o x"$1" != x'safe' ]; then
 fi
 EOF
 
-sed -e $SED_OPT 's/(-C|--config-seed-repo) ([^ ]+)( |$)/--config-repo \2/g' <<EOF >>"$DEPLOYMENT_DIR/sh/update.sh"
+sed $SED_OPT -e 's/(-C|--config-seed-repo) ([^ ]+)( |$)/--config-repo \2/g' <<EOF >>"$DEPLOYMENT_DIR/bin/update.sh"
 $INVOCATION_ORIGINAL
 EOF
 
@@ -391,10 +356,21 @@ chown -R "$ROOT_USER:$ROOT_GROUP" "$DEPLOYMENT_DIR"
 chown -R "$JENKINS_USER:$JENKINS_GROUP" "/var/log/$JENKINS_APPNAME"
 chown -R "$JENKINS_USER:$JENKINS_GROUP" "$DEPLOYMENT_DIR/.ssh"
 
+if [ -n "$SELINUX_ENABLED" ]; then
+	INFO 'Fixing SELinux permissions'
+	chcon --reference=/etc/sysconfig/network "/etc/sysconfig/$JENKINS_APPNAME"
+	chcon --reference=/usr/lib/systemd/system/system.slice "/usr/lib/systemd/system/$JENKINS_APPNAME.service"
+
+	INFO 'Enabling SELinux reverse proxy permissions'
+	setsebool -P httpd_can_network_connect 1
+fi
+
+
+INFO 'Fixing directory ownership'
 if [ -n "$JENKINS_MASTER_URL" ]; then
-	chown -R "$JENKINS_USER:$JENKINS_GROUP" "$DEPLOYMENT_DIR/slave"
+	chown -R "$JENKINS_USER:$JENKINS_GROUP" "$DEPLOYMENT_DIR/.ssh" "$DEPLOYMENT_DIR/slave"
 else
- 	chown -R "$DEPLOYMENT_DIR/.git" "$DEPLOYMENT_DIR/jenkins_home" "$DEPLOYMENT_DIR/jenkins_scripts"
+ 	chown -R "$JENKINS_USER:$JENKINS_GROUP" "$DEPLOYMENT_DIR/.ssh" "$DEPLOYMENT_DIR/jenkins_home" "$DEPLOYMENT_DIR/jenkins_scripts"
 fi
 
 INFO 'Ensuring installation has the correct permissions'
@@ -419,18 +395,49 @@ INFO
 INFO 'SSH public key:'
 cat "$DEPLOYMENT_DIR/.ssh/id_rsa.pub"
 INFO
-INFO 'Jenkins is available on the following URL(s):'
+INFO 'Jenkins will be available on the following URL(s):'
 INFO
 ip addr list | awk '/inet / && !/127.0.0.1/{gsub("/24",""); printf("http://%s\n",$2)}'
 INFO
 
 if [ -z "$JENKINS_MASTER_URL" -a -n "$FIX_FIREWALL" -a -n "$CONFIGURE_SLAVE_CONNECTIVITY" ]; then
-	INFO 'Determing JNLP port'
-	JENKINS_JNLP_PORT="`curl "http://127.0.0.1:8080/tcpSlaveAgentListener/" | awk '/^X-Jenkins-JNLP-Port:/{print $NF}'`"
+	INFO 'Determing JNLP port - this may take a few moments until Jenkins is able to provide this information'
 
-	[ -z "$JENKINS_JNLP_PORT" ] && FATAL 'Unable to determine Jenkins JNLP port'
+	INFO 'Jenkins starting ...'
+	echo -n
+	for _a in `seq 1 $JENKINS_JNLP_CHECK_ATTEMPTS`; do
+		echo -n .
+
+		if [ -z "$JENKINS_STARTED" ]; then
+			if ! grep -Eq 'INFO: Started ServerConnector.*127.0.0.1:8080' "/var/log/$JENKINS_APPNAME/$JENKINS_APPNAME.log"; then
+				sleep $JENKINS_JNLP_CHECK_DELAY
+
+				continue
+			fi
+
+			echo
+			INFO 'Jenkins has partially started now waiting for Jenkins to fuly start ...'
+			echo -n
+			JENKINS_STARTED=1
+		fi
+
+		# Once Jenkins has booted up fully this seems to give a 404, so we may be using something that may brake in the future
+		JENKINS_JNLP_PORT="`curl -sSi "http://127.0.0.1:8080/tcpSlaveAgentListener/" | awk '/^X-Jenkins-JNLP-Port:/{print $NF}'`"
+
+		[ -n "$JENKINS_JNLP_PORT" ] && break
+
+		sleep $JENKINS_JNLP_CHECK_DELAY
+	done
+	echo
+
+	[ -z "$JENKINS_JNLP_PORT" ] && FATAL 'Unable to determine Jenkins JNLP port, this can be completed later if required'
 
 	INFO 'Configuring slave connectivity'
+	if firewall-cmd --info-service=jenkins-jnlp 2>&1 >/dev/null; then
+		INFO 'Removing existing JNLP configuration'
+		firewall-cmd --remove-service=jenkins-jnlp
+	fi
+
 	firewall-cmd --new-service=jenkins-jnlp --permanent
 	firewall-cmd --service=jenkins-jnlp --add-port="$JENKINS_JNLP_PORT/tcp" --permanent
 	firewall-cmd --service=jenkins-jnlp --set-short='Jenkins Slave Connectivity' --permanent

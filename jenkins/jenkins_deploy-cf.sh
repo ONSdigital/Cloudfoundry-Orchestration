@@ -251,20 +251,7 @@ applications:
     JBP_CONFIG_SPRING_AUTO_RECONFIGURATION: '{enabled: false}'
 EOF
 
-
-
-# Suck in the SSH keys for our Git repos
-for i in $JENKINS_CONFIG_REPO $JENKINS_CONFIG_SEED_REPO $JENKINS_SCRIPTS_REPO; do
-	# We only want to scan a host if we are connecting via SSH
-	echo $i | grep -Eq '^((https?|file|git)://|~?/)' && continue
-
-	echo $i | sed $SED_OPT -e 's,^[a-z]+://([^@]+@)([a-z0-9\.-]+)([:/].*)?$,\2,g' | xargs ssh-keyscan -T $SSH_KEYSCAN_TIMEOUT >>known_hosts
-done
-
-# ... and any extra keys
-for i in $SSH_KEYSCAN_HOSTS; do
-	ssh-keyscan -T $SSH_KEYSCAN_TIMEOUT $i
-done | sort -u >>known_hosts
+scan_ssh_hosts $JENKINS_CONFIG_REPO $JENKINS_CONFIG_SEED_REPO $JENKINS_SCRIPTS_REPO $SSH_KEYSCAN_HOSTS >known_hosts
 
 if [ ! -f "$ORIGINAL_DIR/id_rsa" ]; then
 	# Ensure we have a key

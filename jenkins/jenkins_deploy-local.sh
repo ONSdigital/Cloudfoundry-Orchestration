@@ -443,7 +443,10 @@ if [ -z "$JENKINS_MASTER_URL" -a -n "$FIX_FIREWALL" -a -n "$CONFIGURE_SLAVE_CONN
 	INFO 'Configuring slave connectivity'
 	if firewall-cmd --info-service=jenkins-jnlp 2>&1 >/dev/null; then
 		INFO 'Removing existing JNLP configuration'
-		firewall-cmd --remove-service=jenkins-jnlp
+		firewall-cmd --delete-service=jenkins-jnlp
+
+		# If we don't reload the firewall when we come to add the service again it complains it already exists
+		firewall-cmd --reload
 	fi
 
 	firewall-cmd --new-service=jenkins-jnlp --permanent

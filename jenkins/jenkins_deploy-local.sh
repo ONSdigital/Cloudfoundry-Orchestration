@@ -63,24 +63,12 @@ for i in `seq 1 $#`; do
 			JENKINS_CONFIG_NEW_REPO="$2"
 			shift 2
 			;;
-		--deploy-config-repo)
-			DEPLOY_JENKINS_CONFIG_NEW_REPO="$2"
-			shift 2
-			;;
 		-C|--config-seed-repo)
 			JENKINS_CONFIG_SEED_REPO="$2"
 			shift 2
 			;;
-		--deploy-config-seed-repo)
-			DEPLOY_JENKINS_CONFIG_SEED_REPO="$2"
-			shift 2
-			;;
 		-S|--scripts-repo)
 			JENKINS_SCRIPTS_REPO="$2"
-			shift 2
-			;;
-		--scripts-repo)
-			DEPLOY_JENKINS_SCRIPTS_REPO="$2"
 			shift 2
 			;;
 		--no-fix-firewall)
@@ -173,7 +161,7 @@ if [ -n "$JENKINS_MASTER_URL" ]; then
 	[ -z "$JENKINS_JNLP_PORT" ] && FATAL 'Unable to determine Jenkins JNLP port'
 else
 	INFO 'Deploying Jenkins master'
-	configure_git_repo jenkins_home "$JENKINS_CONFIG_SEED_REPO" "${JENKINS_CONFIG_NEW_REPO:-NONE}" "${DEPLOY_JENKINS_CONFIG_SEED_REPO:-NONE}" "${DEPLOY_JENKINS_CONFIG_NEW_REPO:-NONE}"
+	configure_git_repo jenkins_home "$JENKINS_CONFIG_SEED_REPO" "${JENKINS_CONFIG_NEW_REPO:-NONE}"
 
 	git_push_repo_cleanup jenkins_home
 
@@ -186,7 +174,7 @@ else
 
 	cd ..
 
-	configure_git_repo jenkins_scripts "$JENKINS_SCRIPTS_REPO" "${DEPLOY_JENKINS_SCRIPTS_REPO:-NONE}"
+	configure_git_repo jenkins_scripts "$JENKINS_SCRIPTS_REPO"
 
 	cd "$DEPLOYMENT_DIR"
 
@@ -280,6 +268,33 @@ export JENKINS_HOME="$DEPLOYMENT_DIR/jenkins_home"
 export SCRIPTS_DIR="$DEPLOYMENT_DIR/jenkins_scripts"
 export JENKINS_CLI_JAR="$DEPLOYMENT_DIR/bin/jenkins-cli.jar"
 export JENKINS_LOCATION="localhost:8080"
+EOF
+
+INFO 'Creating update script'
+cat >"$DEPLOYMENT_DIR/sh/update.sh" <<EOF
+#!/bin/sh
+#
+# Update script
+#
+# Original invocation: $INVOCATION_ORIGINAL
+#
+if [ -z "$1" -o x"$1" != x'safe' ]; then
+	echo Warning...
+	echo ... this script was automatically generated during the installation process
+	echo ... it may have lost any quoting and escaping, so please check the script
+	echo ... before running it
+	echo
+	echo To run the script after you have confirmed it will work, or after changes
+	echo have been made to make it work please run it with the 'safe' option, eg
+	echo
+	echo $0 safe
+
+	exit 1
+fi
+EOF
+
+sed -e $SED_OPT 's/(-C|--config-seed-repo) ([^ ]+)( |$)/--config-repo \2/g' <<EOF >>"$DEPLOYMENT_DIR/sh/update.sh"
+$INVOCATION_ORIGINAL
 EOF
 
 INFO 'Checking if we need to set a proxy'

@@ -3,6 +3,10 @@
 #
 set -e
 
+
+###########################################################
+#
+# Functionality shared between all of the Jenkins deployment scripts
 COMMON_SH="`dirname "$0"`/jenkins-common.sh"
 
 if [ ! -f "$COMMON_SH" ]; then
@@ -13,6 +17,10 @@ fi
 
 . "$COMMON_SH"
 
+###########################################################
+#
+# Cloudfoundry specific detault values
+#
 # 4096M minimum to avoid complaints about insufficient cache
 JENKINS_MEMORY="${JENKINS_MEMORY:-4096M}"
 # 2048M maximum allow storage
@@ -22,101 +30,116 @@ JENKINS_DISK="${JENKINS_DISK:-2048M}"
 CF_CLI_URL="${CF_CLI_URL:-https://cli.run.pivotal.io/stable?release=linux64-binary&source=github-rel}"
 CF_CLI="$PWD/work/cf"
 
+###########################################################
+#
 # Parse options
+#
 for i in `seq 1 $#`; do
 	[ -z "$1" ] && break
 
 	case "$1" in
 		-n|--name)
+			# Cloudfoundry application name
 			JENKINS_APPNAME="$2"
 			shift 2
 			;;
-		--master_url)
-			JENKINS_MASTER_URL="$2"
-			shift 2
-			;;
-		--master-jnlp-port)
-			JENKINS_JNLP_PORT="$2"
-			shift 2
-			;;
 		-r|--release-type)
+			# Jenkins release type 'stable' or 'latest'
 			JENKINS_RELEASE_TYPE="$2"
 			shift 2
 			;;
 		-m|--memory)
+			# Cloudfoundry application memory
 			JENKINS_MEMORY="$2"
 			shift 2
 			;;
 		-d|--disk-quota)
+			# Cloudfoundry disk quota
 			JENKINS_DISK="$2"
 			shift 2
 			;;
 		-c|--config-repo)
+			# Git repository to hold configuration post-deployment
 			JENKINS_CONFIG_NEW_REPO="$2"
 			shift 2
 			;;
 		--deploy-config-repo)
+			# ... as above, but for use during the deployment phase if the URLs are different
 			DEPLOY_JENKINS_CONFIG_NEW_REPO="$2"
 			shift 2
 			;;
 		-C|--config-seed-repo)
+			# Git repository that holds the existing or seed configuration
 			JENKINS_CONFIG_SEED_REPO="$2"
 			shift 2
 			;;
 		--deploy-config-seed-repo)
+			# ... as above, but for use during the deployment phase if the URLs are different
 			DEPLOY_JENKINS_CONFIG_SEED_REPO="$2"
 			shift 2
 			;;
 		-S|--scripts-repo)
+			# Git repository that contains the Jenkins scripts
 			JENKINS_SCRIPTS_REPO="$2"
 			shift 2
 			;;
 		--deploy-scripts-repo)
+			# ... as above, but for use during the deployment phase if the URLs are different
 			DEPLOY_JENKINS_SCRIPTS_REPO="$2"
 			shift 2
 			;;
 		--jenkins-stable-url)
+			# URL of the stable Jenkins WAR file
 			JENKINS_STABLE_WAR_URL="$2"
 			shift 2
 			;;
 		--jenkins-latest-url)
+			# URL of the latest Jenkins WAR file
 			JENKINS_LATEST_WAR_URL="$2"
 			shift 2
 			;;
 		-P|--plugins)
-			# comma separated list of plugins to preload
+			# Comma separated list of URLs that contain the plugins to install
 			PLUGINS="$2"
 			shift 2
 			;;
 		-X|--disable-csp-security)
+			# Disable cross site scripting security
 			DISABLE_CSP=1
 			shift
 			;;
 		-K|--ssh-keyscan-host)
+			# Additional SSH hosts to scan and add to ~/.ssh/known_hosts
 			[ -n "$SSH_KEYSCAN_HOSTS" ] && SSH_KEYSCAN_HOSTS="$SSH_KEYSCAN_HOSTS $2" || SSH_KEYSCAN_HOSTS="$2"
 			shift 2
 			;;
 		-D|--debug)
-			DEBUG=1
+			# Run the script with 'set -x' set
+			set -x
 			shift
 			;;
 		--cf-cli-url)
+			# URL that contains a tar.gz file of the Cloudfoundry CLI
 			CF_CLI_URL="$2"
 			shift 2
 			;;
 		--cf-api-endpoint)
+			# Cloudfoundry API endpoint
 			CF_API_ENDPOINT="$2"
 			shift 2
 			;;
 		--cf-username)
+			# Cloudfoundry Username
 			CF_USERNAME="$2"
 			shift 2
 			;;
 		--cf-password)
+			# Cloudfoundry Password
 			CF_PASSWORD="$2"
 			shift 2
 			;;
 		--cf-space)
+			# Cloudfoundry Space - may contain spaces, but may not contain leading hypens
 			shift
 			for j in $@; do
 				case "$j" in
@@ -130,6 +153,7 @@ for i in `seq 1 $#`; do
 			done
 			;;
 		--cf-organisation)
+			# Cloudfoundry Organisation - may contain spaces, but may not contain leading hypens
 			shift
 			for j in $@; do
 				case "$j" in
@@ -148,6 +172,7 @@ for i in `seq 1 $#`; do
 	esac
 done
 
+# Ensure we have all of the required Cloudfoundry options/variables
 for m in CF_API_ENDPOINT CF_USERNAME CF_PASSWORD CF_SPACE CF_ORG; do
 	eval v="\$$m"
 
@@ -156,10 +181,12 @@ for m in CF_API_ENDPOINT CF_USERNAME CF_PASSWORD CF_SPACE CF_ORG; do
 	unset v
 done
 
+# Check that an alternative CF_URL has been set if we are not running on Linux
 if [ -z "$CF_URL_SET" ] && ! uname -s | grep -q 'Linux'; then
-	FATAL 'You must set --cf-download-url to point to th location of the CF download for your machine'
+	FATAL 'You must set --cf-download-url to point to the location of the CF download for your machine'
 fi
 
+# Ensure we have the basic tools installed for us to perform a deployment
 for _b in git unzip; do
 	if ! which $_b >/dev/null 2>&1; then
 		whoami | grep -Eq '^root$' || FATAL "You must be root to install $_b. Or you can install $_b and re-run this script"
@@ -167,15 +194,11 @@ for _b in git unzip; do
 	fi
 done
 
-if [ -n "$JENKINS_MASTER_URL" ]; then
-	INFO 'Deploying Jenkins slave'
-	JENKINS_APPNAME="$JENKINS_SLAVE-slave"
-fi
-
 # Ensure we are clean
 [ -d deployment ] && rm -rf deployment
 [ -d work ] || rm -rf work
 
+# Ensure we have the required directories
 mkdir -p deployment work
 
 INFO 'Installing CF CLI'
@@ -185,12 +208,15 @@ if ! curl -Lo work/cf.tar.gz "$CF_CLI_URL"; then
 	FATAL "Downloading CF CLI from '$CF_CLI_URL' failed"
 fi
 
+# Extract the CF CLI
 tar -zxvf work/cf.tar.gz -C work cf
 
 cd deployment
 
+# We have to jump through a few hoops as the Git repository URL(s) used during deployment may not be the same as the ones that will be used once we are deployed
 configure_git_repo jenkins_home "$JENKINS_CONFIG_SEED_REPO" "${JENKINS_CONFIG_NEW_REPO:-NONE}" "${DEPLOY_JENKINS_CONFIG_SEED_REPO:-NONE}" "${DEPLOY_JENKINS_CONFIG_NEW_REPO:-NONE}"
 
+# Fix the Git repository source names and push
 git_push_repo_cleanup jenkins_home
 
 # Disable initial config.xml - it'll get renamed by init.groovy
@@ -201,19 +227,23 @@ INFO 'Installing initial plugin(s)'
 
 cd jenkins_home/plugins
 
+# Download and install any required Jenkins plugins
 download_plugins ${PLUGINS:-$DEFAULT_PLUGINS}
 
 cd ../..
 
+# ... again the Git repository URL we use to deploy from may not be the same as the one we use when we are deployed
 configure_git_repo jenkins_scripts "$JENKINS_SCRIPTS_REPO" "${DEPLOY_JENKINS_SCRIPTS_REPO:-NONE}"
 
 # Cloudfoundry nobbles the .git or if its renamed it nobbles .git*/{branchs,objects,refs} - so we have to jump through a few hoops
 tar -zcf jenkins_home_scripts.tgz jenkins_home jenkins_scripts
 
+# Clean up the old folders now we have archives of the folders
 rm -rf jenkins_home jenkins_scripts
 
 cd ../
 
+# Download the correct Jenkins war file
 download_jenkins_war "$JENKINS_RELEASE_TYPE"
 
 cd deployment
@@ -223,7 +253,7 @@ unzip ../jenkins-$JENKINS_RELEASE_TYPE.war
 
 # We need to remove the manifest.mf, otherwise Cloudfoundry tries to be intelligent and run Main.class rather
 # rather than deploying to Tomcat
-# Sometimes we get MANIFEST.MF and sometimes we get manifest.mf
+# Sometimes we get MANIFEST.MF and sometimes we get manifest.mf - we can probably blame Windows and/or OSX for this
 find META-INF -iname MANIFEST.MF -delete
 
 # Allow disabling of CSP
@@ -231,6 +261,7 @@ if [ -n "$DISABLE_CSP" -a x"$DISABLE_CSP" != x"false" ]; then
 	# Sanity check...
 	[ -f WEB-INF/init.groovy ] && FATAL 'deployment/WEB-INF/init.groovy already exists'
 
+	INFO 'Disabling cross site scripting protection'
 	cat >WEB-INF/init.groovy <<EOF
 import hudson.model.*
 
@@ -251,16 +282,19 @@ applications:
     JBP_CONFIG_SPRING_AUTO_RECONFIGURATION: '{enabled: false}'
 EOF
 
+# Generate known_hosts that will eventually become ~/.ssh/known_hosts
 scan_ssh_hosts $JENKINS_CONFIG_REPO $JENKINS_CONFIG_SEED_REPO $JENKINS_SCRIPTS_REPO $SSH_KEYSCAN_HOSTS >known_hosts
 
+
 if [ ! -f "$ORIGINAL_DIR/id_rsa" ]; then
-	# Ensure we have a key
+	# If we don't have an SSH key we generate one
 	ssh-keygen -t rsa -f id_rsa -N '' -C "$JENKINS_APPNAME"
 
 	INFO 'You will need to add the following public key to the correct repositories to allow access'
 	INFO "We'll print this again at the end in case you miss this time"
 	cat id_rsa.pub
 else
+	# If we have one in the correct location we copy it to the location we need
 	cp "$ORIGINAL_DIR/id_rsa" id_rsa
 
 	# Ensure our key has the correct permissions, otherwise ssh-keygen fails
@@ -270,6 +304,7 @@ else
 	ssh-keygen -f id_rsa -y >id_rsa.pub
 fi
 
+# Directory to hold our pre-run scripts - these scripts are executed prior to starting Jenkins
 mkdir -p .profile.d
 
 # Preconfigure our environment
@@ -279,6 +314,7 @@ set -e
 # We use WEBAPP_HOME to find the jenkins-cli.jar
 export WEBAPP_HOME="$PWD"
 
+# Set some vars that we use later
 export JENKINS_HOME="$WEBAPP_HOME/jenkins_home"
 export SCRIPTS_DIR="$WEBAPP_HOME/jenkins_scripts"
 
@@ -287,10 +323,13 @@ export SCRIPTS_DIR="$WEBAPP_HOME/jenkins_scripts"
 # https://github.com/cloudfoundry/java-buildpack/issues/300
 export REAL_HOME="/home/$USER"
 
+# Extract our archived scripts and Jenkins configuration - this ensures we retain the .git dir
 tar -zxf jenkins_home_scripts.tgz
 
 cd "$JENKINS_HOME"
 
+# Rename our Groovy init script so that Jenkins runs it when it starts.  Once run, the script will
+# delete itself. We do it this way to avoid confusing Git
 [ -f _init.groovy ] && cp _init.groovy init.groovy
 
 cd -
@@ -302,12 +341,14 @@ cd -
 # Configure SSH
 mv id_rsa id_rsa.pub $REAL_HOME/.ssh/
 
+# Create the ~/.ssh/known_hosts
 cat known_hosts >>$REAL_HOME/.ssh/known_hosts
 
 # Remove our temporary files
 rm -f known_hosts id_rsa id_rsa.pub
 rm -f jenkins_home_scripts.tgz
 
+# Now we've configured ourselves we generate a new config file that only contains some vars that Jenkins will use
 cat >.profile.d/00_jenkins_config <<EOF
 export WEBAPP_HOME="$WEBAPP_HOME"
 export SCRIPTS_DIR="$SCRIPTS_DIR"
@@ -333,13 +374,16 @@ cd -
 
 cd "$SCRIPTS_DIR"
 
+# Ensure we have the latest version of the scripts
 git pull origin master || :
 
 cd -
 EOF
 
+INFO "Logging into $CF_API_ENDPOINT as $CF_USERNAME under $CF_ORG/$CF_SPACE"
 "$CF_CLI" login -a "$CF_API_ENDPOINT" -u "$CF_USERNAME" -p "$CF_PASSWORD" -o "$CF_ORG" -s "$CF_SPACE"
 
+INFO "Pushing Jenkins as $JENKINS_APP_NAME"
 "$CF_CLI" push "$JENKINS_APPNAME"
 
 INFO
@@ -347,13 +391,7 @@ INFO 'Jenkins should be available shortly'
 INFO
 INFO 'Please wait whilst things startup... (this could take a while)'
 
-if [ -n "$DEBUG" ]; then
-	INFO 'Debug has been enabled'
-	INFO 'Output Jenkins logs. Please do not interrupt, things should exit once Jenkins has loaded correctly'
-
-	sleep 10
-fi
-
+# Tail the Jenkins logs and report when things have started
 CF_COLOR=false "$CF_CLI" logs "$JENKINS_APPNAME" | tee "$JENKINS_APPNAME-deploy.log" | awk -v debug="$DEBUG" '{
 	if($0 ~ /Jenkins is fully up and running/)
 		exit 0
@@ -367,6 +405,7 @@ CF_COLOR=false "$CF_CLI" logs "$JENKINS_APPNAME" | tee "$JENKINS_APPNAME-deploy.
 	}
 }' && SUCCESS=1 || SUCCESS=0
 
+# Find the Jenkins URL
 JENKINS_URL="`CF_COLOR=false "$CF_CLI" app "$JENKINS_APPNAME" | awk '/^routes:/{printf("https://%s",$NF)}'`"
 
 # We try our best to get things to work properly, but both Jenkins and Cloudfoundry work against us:

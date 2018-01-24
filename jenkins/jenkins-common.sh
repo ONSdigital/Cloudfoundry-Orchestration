@@ -19,7 +19,7 @@ INVOCATION_ORIGINAL="$0 $@"
 
 #############################################
 FATAL(){
-	# echo -ne is a {Linux,Bash}-ism
+	# echo -ne is a {Linux,Bash}-ish-ism
 	echo -ne $FATAL_COLOUR
 	echo "FATAL $@"
 	echo -ne $NONE_COLOUR
@@ -28,7 +28,7 @@ FATAL(){
 }
 
 INFO(){
-	echo -ne $FATAL_COLOUR
+	echo -ne $INFO_COLOUR
 	echo "INFO $@"
 	echo -ne $NONE_COLOUR
 }
@@ -88,8 +88,6 @@ configure_git_repo(){
 
 	[ -d "$repo_dir" ] && FATAL "$repo_dir already exists"
 
-	INFO 'Performing initial git setup'
-	git config --global push.default || git config --global push.default simple
 
 	INFO 'Initialising repository'
 	mkdir "$repo_dir"
@@ -187,6 +185,20 @@ download_plugins(){
 
 	IFS="$OLDIFS"
 }
+
+scan_ssh_hosts(){
+	[ -z "$1" ] && FATAL 'No hosts to scan'
+
+	INFO 'Checking if we need to save any SSH host keys'
+	for _h in $@; do
+                # We only want to scan a host if we are connecting via SSH
+                echo $_h | grep -Eq '^((https?|file|git)://|~?/)' && continue
+
+                # Silence ssh-keyscan
+                echo $_h | sed $SED_OPT -e 's,^[a-z]+://([^@]+@)([a-z0-9\.-]+)([:/].*)?$,\2,g' | xargs ssh-keyscan -T "$SSH_KEYSCAN_TIMEOUT"
+        done
+}
+
 #############################################
 
 
@@ -204,6 +216,8 @@ if [ 0$COLOURS -ge 8 ]; then
 	NONE_COLOUR='\e[0m'
 fi
 
+INFO 'Performing initial git setup'
+git config --global push.default || git config --global push.default simple
 
 # Ensure we have a sensible umask
 umask 022

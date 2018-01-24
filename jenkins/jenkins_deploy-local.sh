@@ -2,6 +2,9 @@
 #
 set -e
 
+###########################################################
+#
+# Functionality shared between all of the Jenkins deployment scripts
 COMMON_SH="`dirname "$0"`/jenkins-common.sh"
 
 if [ ! -f "$COMMON_SH" ]; then
@@ -11,94 +14,123 @@ if [ ! -f "$COMMON_SH" ]; then
 fi
 
 . "$COMMON_SH"
+###########################################################
 
+###########################################################
+#
+# Local install specific default values
+#
 ROOT_USER="${ROOT_USER:-root}"
 ROOT_GROUP="${ROOT_USER:-wheel}"
-
+#
 JENKINS_USER="${JENKINS_USER:-jenkins}"
 JENKINS_GROUP="${JENKINS_GROUP:-jenkins}"
-
-whoami | grep -Eq "^$ROOT_USER$" || FATAL "This script MUST be run as $ROOT_USER"
-
-LOG_ROTATE_COUNT='10'
-LOG_ROTATE_SIZE='10m'
-LOG_ROTATE_FREQUENCY='daily'
+#
+#
+INSTALL_BASE_DIR="${INSTALL_BASE_DIR:-/opt}"
+LOG_ROTATE_COUNT="${LOG_ROTATE_COUNT:-10}"
+LOG_ROTATE_SIZE="${LOG_ROTATE_SIZE:-10m}"
+LOG_ROTATE_FREQUENCY="${LOG_ROTATE_FREQUENCY:-daily}"
 # Fonts & fontconfig are required for AWT
 BASE_PACKAGES='git java-1.8.0-openjdk-headless httpd dejavu-sans-fonts fontconfig unzip'
-SSH_KEYSCAN_TIMEOUT='10'
-
+SSH_KEYSCAN_TIMEOUT="${SSH_KEYSCAN_TIMEOUT:-10}"
+#
 CONFIGURE_SLAVE_CONNECTIVITY=1
 FIX_FIREWALL=1
 FIX_SELINUX=1
 
 # In seconds
-JENKINS_START_DELAY='120'
-JENKINS_JNLP_CHECK_DELAY='10'
-JENKINS_JNLP_CHECK_ATTEMPTS='100'
+JENKINS_START_DELAY="${JENKINS_START_DELAY:-120}"
+JENKINS_JNLP_CHECK_DELAY="${JENKINS_JNLP_CHECK_DELAY:-10}"
+JENKINS_JNLP_CHECK_ATTEMPTS="${JENKINS_JNLP_CHECK_ATTEMPTS:-100}"
+###########################################################
 
+whoami | grep -Eq "^$ROOT_USER$" || FATAL "This script MUST be run as $ROOT_USER"
+
+###########################################################
+#
 # Parse options
 for i in `seq 1 $#`; do
 	[ -z "$1" ] && break
 
 	case "$1" in
 		-n|--name)
+			# Jenkins application name, Jenkins will be install under
 			JENKINS_APPNAME="$2"
 			shift 2
 			;;
 		--master-url)
+			# The URL the Jenkins application run on (eg http://192.168.6.66:8080) - required if deploying a slave
 			JENKINS_MASTER_URL="$2"
 			shift 2
 			;;
 		--jenkins-slave-name)
+			# The name of the Jenkins slave - required if deploying a slave
 			JENKINS_SLAVE_NAME="$2"
 			shift 2
 			;;
 		--jenkins-slave-secret)
+			# Jenkins slave secret - required if deploying a slave
 			JENKINS_SLAVE_SECRET="$2"
 			shift 2
 			;;
 		--disable-slave-connectivity)
+			# Do not configure the master to handle a slave (eg do not allow JNLP through the local firewall)
 			unset CONFIGURE_SLAVE_CONNECTIVITY
 			shift
 			;;
 		-r|--release-type)
+			# Jenkins release type 'stable' or 'latest'
 			JENKINS_RELEASE_TYPE="$2"
 			shift 2
 			;;
 		-c|--config-repo)
+			# Git repository to hold configuration post-deployment
 			JENKINS_CONFIG_NEW_REPO="$2"
 			shift 2
 			;;
 		-C|--config-seed-repo)
+			# Git repository that holds the existing or seed configuration
 			JENKINS_CONFIG_SEED_REPO="$2"
 			shift 2
 			;;
 		-S|--scripts-repo)
+			# Git repository that contains the Jenkins scripts
 			JENKINS_SCRIPTS_REPO="$2"
 			shift 2
 			;;
 		--no-fix-firewall)
+			# Do not configure the firewall
 			unset FIX_FIREWALL
 			shift
 			;;
-		--no-selinux)
+		--no-fix-selinux)
+			# Do not configure SELinux
 			unset FIX_SELINUX
 			shift
 			;;
+		--jenkins-base-install-dir)
+			# Base directory where we create the directory to hold Jenkins 
+			INSTALL_BASE_DIR="$2"
+			shift 2
+			;;
 		--jenkins-stable-url)
+			# URL of the stable Jenkins WAR file
 			JENKINS_STABLE_WAR_URL="$2"
 			shift 2
 			;;
 		--jenkins-latest-url)
+			# URL of the latest Jenkins WAR file
 			JENKINS_LATEST_WAR_URL="$2"
 			shift 2
 			;;
 		-P|--plugins)
-			# comma separated list of plugins to preload
+			# Comma separated list of URLs that contain the plugins to install
 			PLUGINS="$DEFAULT_PLUGINS,$2"
 			shift 2
 			;;
 		-K|--ssh-keyscan-host)
+			# Additional SSH hosts to scan and add to ~/.ssh/known_hosts
 			[ -n "$SSH_KEYSCAN_HOSTS" ] && SSH_KEYSCAN_HOSTS="$SSH_KEYSCAN_HOSTS $2" || SSH_KEYSCAN_HOSTS="$2"
 			shift 2
 			;;
@@ -107,11 +139,13 @@ for i in `seq 1 $#`; do
 			;;
 	esac
 done
+###########################################################
 
-INSTALL_BASE_DIR="${INSTALL_BASE_DIR:-/opt}"
 DEPLOYMENT_DIR="$INSTALL_BASE_DIR/$JENKINS_APPNAME"
 
 if [ -z "$JENKINS_MASTER_URL" ]; then
+	# If we are not being deployed as a slave ensure we have the required repositories
+
 	if [ -z "$JENKINS_CONFIG_SEED_REPO" ]; then
 		FATAL 'No JENKINS_CONFIG_SEED_REPO provided'
 	fi
@@ -119,8 +153,11 @@ if [ -z "$JENKINS_MASTER_URL" ]; then
 	if [ -z "$JENKINS_SCRIPTS_REPO" ]; then
 		FATAL 'No JENKINS_SCRIPTS_REPO provided'
 	fi
+elif [ -z "$JENKINS_SLAVE_SECRET" ]; then
+	FATAL "No Jenkins secret provided. Cannot connect to Jenkins master. The secret will be available from $JENKINS_MASTER_URL/computer/$JENKINS_SLAVE_NAME/ - assuming the slave name is correct"
 fi
 
+# Is there already a Jenkins deployed?
 [ -d "$DEPLOYMENT_DIR" ] && FATAL "Deployment '$DEPLOYMENT_DIR' already exists, please remove"
 
 INFO "Creating $DEPLOYMENT_DIR layout"
@@ -135,6 +172,7 @@ for _i in $BASE_PACKAGES; do
 done
 
 if [ -n "$FIX_SELINUX" ]; then
+	# Check if we have SELinux enabled
 	INFO 'Determining SELinux status'
 	sestatus 2>&1 >/dev/null && SELINUX_ENABLED=true
 fi
@@ -154,8 +192,6 @@ if [ -n "$JENKINS_MASTER_URL" ]; then
 	JENKINS_APPNAME="$JENKINS_SLAVE_NAME"
 	JENKINS_AGENT_JAR="$DEPLOYMENT_DIR/bin/agent.jar"
 	
-	[ -z "$JENKINS_SLAVE_SECRET" ] && FATAL "No Jenkins secret provided. Cannot connect to Jenkins master. The secret will be available from $JENKINS_MASTER_URL/computer/$JENKINS_SLAVE_NAME/ - assuming the slave name is correct"
-
 	INFO 'Downloading Jenkins agent.jar'
 	curl -Lo "$JENKINS_AGENT_JAR" "$JENKINS_MASTER_URL/jnlpJars/agent.jar"
 
@@ -167,19 +203,26 @@ if [ -n "$JENKINS_MASTER_URL" ]; then
 	[ -z "$JENKINS_JNLP_PORT" ] && FATAL 'Unable to determine Jenkins JNLP port'
 else
 	INFO 'Deploying Jenkins master'
+
+	# We have to jump through a few hoops as the Git repository URL(s) used during deployment may not be the same as the ones that will be used once we are deployed
 	configure_git_repo jenkins_home "$JENKINS_CONFIG_SEED_REPO" "${JENKINS_CONFIG_NEW_REPO:-NONE}"
 
+	# Fix the Git repository source names and push
 	git_push_repo_cleanup jenkins_home
 
 	INFO 'Setting up Jenkins to install required plugins'
 	cd "$DEPLOYMENT_DIR/jenkins_home"
+
+	# Rename our Groovy init script so that Jenkins runs it when it starts.  Once run, the script will
+	# delete itself. We do it this way to avoid confusing Git
 	cp _init.groovy init.groovy
 
-	# init.groovy will rename this when its run
+	# Disable initial config.xml - it'll get renamed by init.groovy
 	mv config.xml _config.xml
 
 	cd ..
 
+	# ... again the Git repository URL we use to deploy from may not be the same as the one we use when we are deployed
 	configure_git_repo jenkins_scripts "$JENKINS_SCRIPTS_REPO"
 
 	cd "$DEPLOYMENT_DIR"
@@ -189,10 +232,12 @@ else
 
 	cd "$DEPLOYMENT_DIR/jenkins_home/plugins"
 
+	# Download and install any required Jenkins plugins
 	download_plugins ${PLUGINS:-$DEFAULT_PLUGINS}
 
 	cd "$DEPLOYMENT_DIR"
 
+	# Download the correct Jenkins war file
 	download_jenkins_war "$JENKINS_RELEASE_TYPE"
 
 	cd bin
@@ -216,6 +261,7 @@ EOF
 		firewall-cmd --reload
 	fi
 
+	# Generate the Jenkins user's ~/.ssh/known_hosts
 	scan_ssh_hosts $JENKINS_CONFIG_REPO $JENKINS_CONFIG_SEED_REPO $JENKINS_SCRIPTS_REPO $SSH_KEYSCAN_HOSTS >"$DEPLOYMENT_DIR/.ssh/known_hosts"
 
 	INFO 'Enabling and starting httpd'
@@ -258,6 +304,7 @@ if [ -z "$1" -o x"$1" != x'safe' ]; then
 fi
 EOF
 
+# Adjust our invocation args so that it can be run again to update Jenkins
 awk '{
 	if($0 ~ / (-C|--config-seed-repo) / && $0 ~ / (-c|--config-repo) /){
 		print "YES"
@@ -281,25 +328,31 @@ cat >>"$DEPLOYMENT_DIR/bin/$JENKINS_APPNAME-startup.sh" <<EOF
 
 set -e
 
+# Basic sanity check
 if [ x"$JENKINS_USER" != x"\$USER" ]; then
 	FATAL 'This startup script MUST be run as $JENKINS_USER'
 
 	exit 1
 fi
 
+# Read our global config if it exists
 [ -f "/etc/sysconfig/$JENKINS_APPNAME" ] && . /etc/sysconfig/$JENKINS_APPNAME
 
+# Rotate our previous log - we read the new log during deployment, so we don't want to confuse ourselves by having old startup data in the log file
 [ -f "/var/log/$JENKINS_APPNAME/$JENKINS_APPNAME.log" ] && gzip -c "/var/log/$JENKINS_APPNAME/$JENKINS_APPNAME.log" >"/var/log/$JENKINS_APPNAME/$JENKINS_APPNAME.log.previous.gz"
 EOF
 
+# Add our master/slave specific start command 
 if [ -z "$JENKINS_MASTER_URL" ]; then
 	# We are a master
 	cat >>"$DEPLOYMENT_DIR/bin/$JENKINS_APPNAME-startup.sh" <<EOF
+# Jenkins master
 java -Djava.awt.headless=true -jar "$DEPLOYMENT_DIR/jenkins-$JENKINS_RELEASE_TYPE.war" --httpListenAddress=127.0.0.1 >"/var/log/$JENKINS_APPNAME/$JENKINS_APPNAME.log" 2>&1
 EOF
 else
 	# We are a slave
 	cat >>"$DEPLOYMENT_DIR/bin/$JENKINS_APPNAME-startup.sh" <<EOF
+# Jenkins slave
 java -Djava.awt.headless=true -jar "$JENKINS_AGENT_JAR" -workDir "$DEPLOYMENT_DIR/slave" -jnlpUrl "$JENKINS_MASTER_URL/computer/$JENKINS_SLAVE_NAME/slave-agent.jnlp" -secret "$JENKINS_SLAVE_SECRET" >"/var/log/$JENKINS_APPNAME/$JENKINS_APPNAME.log" 2>&1
 EOF
 fi
@@ -339,13 +392,14 @@ if [ -f "/usr/lib/systemd/system/$JENKINS_APPNAME.service" ]; then
 	INFO "Ensuring any existing $JENKINS_APPNAME.service is not running"
 	systemctl -q status $JENKINS_APPNAME.service && systemctl -q stop $JENKINS_APPNAME.service
 
+	# If we have an existing service we need to reload systemd so that it picks up the updated service file
 	RELOAD_SYSTEMD=1
 fi
 
 INFO 'Generating SSH keys'
 ssh-keygen -qt rsa -f "$DEPLOYMENT_DIR/.ssh/id_rsa" -N '' -C "$JENKINS_APPNAME"
 
-INFO Installing service
+INFO 'Installing service'
 cp --no-preserve=mode -f "$DEPLOYMENT_DIR/config/$JENKINS_APPNAME.service" "/usr/lib/systemd/system/$JENKINS_APPNAME.service"
 
 if [ -n "$RELOAD_SYSTEMD" ]; then
@@ -359,7 +413,18 @@ cp --no-preserve=mode -f "$DEPLOYMENT_DIR/config/$JENKINS_APPNAME.config" "/etc/
 INFO 'Install logrotate config'
 cp --no-preserve=mode -f "$DEPLOYMENT_DIR/config/$JENKINS_APPNAME.rotate" /etc/logrotate.d
 
+# Add a note that these configs are not the ones being used by the system
+cat >"$DEPLOYMENT_DIR/config/README.1st" <<EOF
+
+Please note
+
+The files in this folder are not the ones that the system uses.  They are located under '/etc/sysconfig/$JENKINS_APPNAME'
+and '/etc/logrotate.d/$JENKINS_APPNAME.rotate'
+
+EOF
+
 INFO 'Ensuring we have the correct ownership'
+# We don't want to give the Jenkins user permission to write to anything other than the bits it has to be able to write to
 chown -R "$ROOT_USER:$ROOT_GROUP" "$DEPLOYMENT_DIR"
 chown -R "$JENKINS_USER:$JENKINS_GROUP" "/var/log/$JENKINS_APPNAME"
 chown -R "$JENKINS_USER:$JENKINS_GROUP" "$DEPLOYMENT_DIR/.ssh"
@@ -374,13 +439,15 @@ if [ -n "$SELINUX_ENABLED" ]; then
 fi
 
 
+# Give the Jenkins user permission to write to its own directories
 INFO 'Fixing directory ownership'
 if [ -n "$JENKINS_MASTER_URL" ]; then
-	chown -R "$JENKINS_USER:$JENKINS_GROUP" "$DEPLOYMENT_DIR/.ssh" "$DEPLOYMENT_DIR/slave"
+	chown -R "$JENKINS_USER:$JENKINS_GROUP" "$DEPLOYMENT_DIR/slave"
 else
- 	chown -R "$JENKINS_USER:$JENKINS_GROUP" "$DEPLOYMENT_DIR/.ssh" "$DEPLOYMENT_DIR/jenkins_home" "$DEPLOYMENT_DIR/jenkins_scripts"
+ 	chown -R "$JENKINS_USER:$JENKINS_GROUP" "$DEPLOYMENT_DIR/jenkins_home" "$DEPLOYMENT_DIR/jenkins_scripts"
 fi
 
+# SSH will complain/fail without the correct permissions
 INFO 'Ensuring installation has the correct permissions'
 chmod 0700 "$DEPLOYMENT_DIR/.ssh"
 chmod 0600 "$DEPLOYMENT_DIR/.ssh/id_rsa"
@@ -390,6 +457,8 @@ if [ -n "$JENKINS_MASTER_URL" ]; then
 else
 	INFO 'Enabling and starting - Jenkins will install required plugins and restart a few times, so this may take a while'
 fi
+
+# Enable and start our Jenkins master/slave service
 chmod 0755 "$DEPLOYMENT_DIR/bin/$JENKINS_APPNAME-startup.sh"
 systemctl enable $JENKINS_APPNAME.service
 systemctl start $JENKINS_APPNAME.service
@@ -409,6 +478,7 @@ ip addr list | awk '/inet / && !/127.0.0.1/{gsub("/24",""); printf("http://%s\n"
 INFO
 
 if [ -z "$JENKINS_MASTER_URL" -a -n "$FIX_FIREWALL" -a -n "$CONFIGURE_SLAVE_CONNECTIVITY" ]; then
+	# If we are running a Jenkins master node we have to jump through a few more hoops to enable JNLP
 	INFO 'Determing JNLP port - this may take a few moments until Jenkins is able to provide this information'
 
 	INFO 'Jenkins starting ...'
@@ -416,22 +486,17 @@ if [ -z "$JENKINS_MASTER_URL" -a -n "$FIX_FIREWALL" -a -n "$CONFIGURE_SLAVE_CONN
 	for _a in `seq 1 $JENKINS_JNLP_CHECK_ATTEMPTS`; do
 		echo -n .
 
-		if [ -z "$JENKINS_STARTED" ]; then
-			if ! grep -Eq 'INFO: Started ServerConnector.*127.0.0.1:8080' "/var/log/$JENKINS_APPNAME/$JENKINS_APPNAME.log"; then
-				sleep $JENKINS_JNLP_CHECK_DELAY
-
-				continue
-			fi
-
+		if [ -z "$JENKINS_STARTED" ] && awk '{ if(/"INFO: Started ServerConnector.*127.0.0.1:8080") exit 0; printf(".") }' "/var/log/$JENKINS_APPNAME/$JENKINS_APPNAME.log"; then
 			echo
 			INFO 'Jenkins has partially started now waiting for Jenkins to fuly start ...'
 			echo -n
 			JENKINS_STARTED=1
 		fi
 
-		# Once Jenkins has booted up fully this seems to give a 404, so we may be using something that may brake in the future
+		# Now Jenkins has started, we check for a header containing the JNLP port
 		JENKINS_JNLP_PORT="`curl -sSi "http://127.0.0.1:8080/tcpSlaveAgentListener/" | awk '/^X-Jenkins-JNLP-Port:/{print $NF}'`"
 
+		# Once we have the port we can then configure the firewall
 		[ -n "$JENKINS_JNLP_PORT" ] && break
 
 		sleep $JENKINS_JNLP_CHECK_DELAY
@@ -441,6 +506,8 @@ if [ -z "$JENKINS_MASTER_URL" -a -n "$FIX_FIREWALL" -a -n "$CONFIGURE_SLAVE_CONN
 	[ -z "$JENKINS_JNLP_PORT" ] && FATAL 'Unable to determine Jenkins JNLP port, this can be completed later if required'
 
 	INFO 'Configuring slave connectivity'
+
+	# firewall-cmd isn't the most user friendly of tools
 	if firewall-cmd --info-service=jenkins-jnlp >/dev/null 2>&1; then
 		INFO 'Removing existing JNLP configuration'
 		firewall-cmd --permanent --delete-service=jenkins-jnlp
@@ -449,6 +516,7 @@ if [ -z "$JENKINS_MASTER_URL" -a -n "$FIX_FIREWALL" -a -n "$CONFIGURE_SLAVE_CONN
 		firewall-cmd --reload
 	fi
 
+	# Add an exception to allow access via the JNLP port
 	firewall-cmd --permanent --new-service=jenkins-jnlp
 	firewall-cmd --permanent --service=jenkins-jnlp --add-port="$JENKINS_JNLP_PORT/tcp"
 	firewall-cmd --permanent --service=jenkins-jnlp --set-short='Jenkins Slave Connectivity'

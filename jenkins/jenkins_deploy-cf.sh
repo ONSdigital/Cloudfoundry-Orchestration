@@ -16,10 +16,11 @@ if [ ! -f "$COMMON_SH" ]; then
 fi
 
 . "$COMMON_SH"
+###########################################################
 
 ###########################################################
 #
-# Cloudfoundry specific detault values
+# Cloudfoundry specific default values
 #
 # 4096M minimum to avoid complaints about insufficient cache
 JENKINS_MEMORY="${JENKINS_MEMORY:-4096M}"
@@ -29,6 +30,7 @@ JENKINS_DISK="${JENKINS_DISK:-2048M}"
 # Default to assuming we are running on Linux and x86_64
 CF_CLI_URL="${CF_CLI_URL:-https://cli.run.pivotal.io/stable?release=linux64-binary&source=github-rel}"
 CF_CLI="$PWD/work/cf"
+###########################################################
 
 ###########################################################
 #
@@ -171,6 +173,7 @@ for i in `seq 1 $#`; do
 			;;
 	esac
 done
+###########################################################
 
 # Ensure we have all of the required Cloudfoundry options/variables
 for m in CF_API_ENDPOINT CF_USERNAME CF_PASSWORD CF_SPACE CF_ORG; do

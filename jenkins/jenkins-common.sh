@@ -15,6 +15,8 @@ JENKINS_LATEST_WAR_URL="${JENKINS_LATEST_WAR_URL:-http://mirrors.jenkins-ci.org/
 DEFAULT_PLUGINS="https://updates.jenkins-ci.org/latest/matrix-auth.hpi"
 #############################################
 
+INVOCATION_ORIGINAL="$0 $@"
+
 #############################################
 FATAL(){
 	# echo -ne is a {Linux,Bash}-ism

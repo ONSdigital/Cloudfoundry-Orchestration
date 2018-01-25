@@ -187,9 +187,7 @@ cd "$DEPLOYMENT_DIR"
 
 if [ -n "$JENKINS_MASTER_URL" ]; then
 	INFO 'Deploying Jenkins slave'
-	[ -z "$JENKINS_SLAVE_NAME" ] && JENKINS_SLAVE_NAME="$JENKINS_APPNAME-slave"
-
-	JENKINS_APPNAME="$JENKINS_SLAVE_NAME"
+	JENKINS_APPNAME="$JENKINS_APPNAME-${JENKINS_SLAVE_NAME:-slave}"
 	JENKINS_AGENT_JAR="$DEPLOYMENT_DIR/bin/agent.jar"
 	
 	INFO 'Downloading Jenkins agent.jar'

@@ -253,10 +253,10 @@ EOF
 
 	if [ -n "$FIX_FIREWALL" ]; then
 		INFO 'Permitting access to HTTP'
-		firewall-cmd --permanent --add-service=http
+		firewall-cmd -q --permanent --add-service=http
 
 		INFO 'Reloading firewall'
-		firewall-cmd --reload
+		firewall-cmd -q --reload
 	fi
 
 	# Generate the Jenkins user's ~/.ssh/known_hosts
@@ -520,7 +520,7 @@ if [ -z "$JENKINS_MASTER_URL" -a -n "$FIX_FIREWALL" -a -n "$CONFIGURE_SLAVE_CONN
 		fi
 
 		# Now Jenkins has started, we check for a header containing the JNLP port
-		JENKINS_JNLP_PORT="`curl -sSi "http://127.0.0.1:8080/tcpSlaveAgentListener/" | awk '/^X-Jenkins-JNLP-Port:/{print $NF}'`"
+		JENKINS_JNLP_PORT="`curl --max-time 2 -si "http://127.0.0.1:8080/tcpSlaveAgentListener/" | awk '/^X-Jenkins-JNLP-Port:/{print $NF}'`"
 
 		# Once we have the port we can then configure the firewall
 		[ -n "$JENKINS_JNLP_PORT" ] && break
@@ -531,23 +531,22 @@ if [ -z "$JENKINS_MASTER_URL" -a -n "$FIX_FIREWALL" -a -n "$CONFIGURE_SLAVE_CONN
 
 	[ -z "$JENKINS_JNLP_PORT" ] && FATAL 'Unable to determine Jenkins JNLP port, this can be completed later if required'
 
-	INFO 'Configuring slave connectivity'
-
 	# firewall-cmd isn't the most user friendly of tools
 	if firewall-cmd --info-service=jenkins-jnlp >/dev/null 2>&1; then
-		INFO 'Removing existing JNLP configuration'
-		firewall-cmd --permanent --delete-service=jenkins-jnlp
+		INFO 'Removing existing (local) firewall definition for Jenkins slave access'
+		firewall-cmd -q --permanent --delete-service=jenkins-jnlp
 
 		# If we don't reload the firewall when we come to add the service again it complains it already exists
-		firewall-cmd --reload
+		firewall-cmd -q --reload
 	fi
 
+	INFO 'Adding (local) firewall definition for Jenkins slave access'
 	# Add an exception to allow access via the JNLP port
-	firewall-cmd --permanent --new-service=jenkins-jnlp
-	firewall-cmd --permanent --service=jenkins-jnlp --add-port="$JENKINS_JNLP_PORT/tcp"
-	firewall-cmd --permanent --service=jenkins-jnlp --set-short='Jenkins Slave Connectivity'
-	firewall-cmd --permanent --add-service=jenkins-jnlp
+	firewall-cmd -q --permanent --new-service=jenkins-jnlp
+	firewall-cmd -q --permanent --service=jenkins-jnlp --add-port="$JENKINS_JNLP_PORT/tcp"
+	firewall-cmd -q --permanent --service=jenkins-jnlp --set-short='Jenkins Slave Connectivity'
+	firewall-cmd -q --permanent --add-service=jenkins-jnlp
 
 	INFO 'Reloading firewall'
-	firewall-cmd --reload
+	firewall-cmd -q --reload
 fi

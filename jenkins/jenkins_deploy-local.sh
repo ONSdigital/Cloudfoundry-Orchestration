@@ -246,7 +246,7 @@ else
 	cd - 2>&1 >/dev/null
 
 	INFO 'Creating httpd reverse proxy setup'
-	cat >/etc/httpd/conf.d/$JENKINS_APPNAME-proxy.conf <<EOF
+	cat >"/etc/httpd/conf.d/$JENKINS_APPNAME-proxy.conf" <<EOF
 	ProxyPass         "/" "http://127.0.0.1:8080/"
 	ProxyPassReverse  "/" "http://127.0.0.1:8080/"
 EOF
@@ -279,10 +279,10 @@ mkdir -p "/var/log/$JENKINS_APPNAME"
 
 INFO "Creating $JENKINS_APPNAME configuration"
 cat >"$DEPLOYMENT_DIR/config/$JENKINS_APPNAME.config" <<EOF
-export JENKINS_HOME="$DEPLOYMENT_DIR/jenkins_home"
-export SCRIPTS_DIR="$DEPLOYMENT_DIR/jenkins_scripts"
-export JENKINS_CLI_JAR="$DEPLOYMENT_DIR/bin/jenkins-cli.jar"
-export JENKINS_LOCATION="localhost:8080"
+export JENKINS_HOME='$DEPLOYMENT_DIR/jenkins_home'
+export SCRIPTS_DIR='$DEPLOYMENT_DIR/jenkins_scripts'
+export JENKINS_CLI_JAR='$DEPLOYMENT_DIR/bin/jenkins-cli.jar'
+export JENKINS_LOCATION='localhost:8080'
 EOF
 
 INFO 'Creating update script'
@@ -340,7 +340,7 @@ if [ x'$JENKINS_USER' != x"\$USER" ]; then
 fi
 
 # Read our global config if it exists
-[ -f '/etc/sysconfig/$JENKINS_APPNAME' ] && . /etc/sysconfig/$JENKINS_APPNAME
+[ -f '/etc/sysconfig/$JENKINS_APPNAME' ] && . '/etc/sysconfig/$JENKINS_APPNAME'
 
 # Rotate our previous log - we read the new log during deployment, so we don't want to confuse ourselves by having old startup data in the log file
 if [ -f '/var/log/$JENKINS_APPNAME/$JENKINS_APPNAME.log' ]; then
@@ -386,7 +386,7 @@ INFO 'Generating logrotate config'
 cat >"$DEPLOYMENT_DIR/config/$JENKINS_APPNAME.rotate" <<EOF
 # Logrotate for $JENKINS_APPNAME
 
-/var/log/$JENKINS_APPNAME/$JENKINS_APPNAME.log {
+'/var/log/$JENKINS_APPNAME/$JENKINS_APPNAME.log' {
         missingok
         compress
         copytruncate
@@ -400,7 +400,7 @@ EOF
 if [ -f "/usr/lib/systemd/system/$JENKINS_APPNAME.service" ]; then
 	# ... and stop it
 	INFO "Ensuring any existing $JENKINS_APPNAME.service is not running"
-	systemctl -q status $JENKINS_APPNAME.service && systemctl -q stop $JENKINS_APPNAME.service
+	systemctl -q is-active "$JENKINS_APPNAME.service" && systemctl -q stop "$JENKINS_APPNAME.service"
 
 	# If we have an existing service we need to reload systemd so that it picks up the updated service file
 	RELOAD_SYSTEMD=1
@@ -470,8 +470,8 @@ fi
 
 # Enable and start our Jenkins master/slave service
 chmod 0755 "$DEPLOYMENT_DIR/bin/$JENKINS_APPNAME-startup.sh"
-systemctl enable $JENKINS_APPNAME.service
-systemctl start $JENKINS_APPNAME.service
+systemctl enable "$JENKINS_APPNAME.service"
+systemctl start "$JENKINS_APPNAME.service"
 
 INFO 'Jenkins should be available shortly'
 INFO
@@ -481,10 +481,6 @@ INFO 'Whilst things are starting up you can add Jenkins public key to the Git re
 INFO
 INFO 'SSH public key:'
 cat "$DEPLOYMENT_DIR/.ssh/id_rsa.pub"
-INFO
-INFO 'Jenkins will be available on the following URL(s):'
-INFO
-ip addr list | awk '/inet / && !/127.0.0.1/{gsub("/24",""); printf("http://%s\n",$2)}'
 INFO
 
 if [ -z "$JENKINS_MASTER_URL" -a -n "$FIX_FIREWALL" -a -n "$CONFIGURE_SLAVE_CONNECTIVITY" ]; then
@@ -527,20 +523,21 @@ if [ -z "$JENKINS_MASTER_URL" -a -n "$FIX_FIREWALL" -a -n "$CONFIGURE_SLAVE_CONN
 
 		sleep $JENKINS_JNLP_CHECK_DELAY
 	done
-	echo
 
 	[ -z "$JENKINS_JNLP_PORT" ] && FATAL 'Unable to determine Jenkins JNLP port, this can be completed later if required'
 
+	INFO 'Jenkins has now fully started'
+
 	# firewall-cmd isn't the most user friendly of tools
 	if firewall-cmd --info-service=jenkins-jnlp >/dev/null 2>&1; then
-		INFO 'Removing existing (local) firewall definition for Jenkins slave access'
+		INFO 'Removing existing, local, firewall definition for Jenkins slave access'
 		firewall-cmd -q --permanent --delete-service=jenkins-jnlp
 
 		# If we don't reload the firewall when we come to add the service again it complains it already exists
 		firewall-cmd -q --reload
 	fi
 
-	INFO 'Adding (local) firewall definition for Jenkins slave access'
+	INFO 'Adding, local, firewall definition for Jenkins slave access'
 	# Add an exception to allow access via the JNLP port
 	firewall-cmd -q --permanent --new-service=jenkins-jnlp
 	firewall-cmd -q --permanent --service=jenkins-jnlp --add-port="$JENKINS_JNLP_PORT/tcp"
@@ -549,4 +546,9 @@ if [ -z "$JENKINS_MASTER_URL" -a -n "$FIX_FIREWALL" -a -n "$CONFIGURE_SLAVE_CONN
 
 	INFO 'Reloading firewall'
 	firewall-cmd -q --reload
+
+	INFO 'Jenkins will be available on the following URL(s):'
+	INFO
+	ip addr list | awk '/inet / && !/127.0.0.1/{gsub("/24",""); printf("http://%s\n",$2)}'
+	INFO
 fi

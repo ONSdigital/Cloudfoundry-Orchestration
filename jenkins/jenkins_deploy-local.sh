@@ -41,7 +41,7 @@ FIX_SELINUX=1
 
 # In seconds
 JENKINS_START_DELAY="${JENKINS_START_DELAY:-120}"
-JENKINS_JNLP_CHECK_DELAY="${JENKINS_JNLP_CHECK_DELAY:-10}"
+JENKINS_JNLP_CHECK_DELAY="${JENKINS_JNLP_CHECK_DELAY:-5}"
 JENKINS_JNLP_CHECK_ATTEMPTS="${JENKINS_JNLP_CHECK_ATTEMPTS:-100}"
 ###########################################################
 
@@ -268,6 +268,12 @@ EOF
 
 fi
 
+if [ -d "/var/log/$JENKINS_APPNAME" ]; then
+	INFO 'Clearing existing log directory'
+
+	rm -rf "/var/log/$JENKINS_APPNAME"
+fi
+
 INFO 'Creating Jenkins log directory'
 mkdir -p "/var/log/$JENKINS_APPNAME"
 
@@ -327,17 +333,23 @@ cat >>"$DEPLOYMENT_DIR/bin/$JENKINS_APPNAME-startup.sh" <<EOF
 set -e
 
 # Basic sanity check
-if [ x"$JENKINS_USER" != x"\$USER" ]; then
+if [ x'$JENKINS_USER' != x"\$USER" ]; then
 	FATAL 'This startup script MUST be run as $JENKINS_USER'
 
 	exit 1
 fi
 
 # Read our global config if it exists
-[ -f "/etc/sysconfig/$JENKINS_APPNAME" ] && . /etc/sysconfig/$JENKINS_APPNAME
+[ -f '/etc/sysconfig/$JENKINS_APPNAME' ] && . /etc/sysconfig/$JENKINS_APPNAME
 
 # Rotate our previous log - we read the new log during deployment, so we don't want to confuse ourselves by having old startup data in the log file
-[ -f "/var/log/$JENKINS_APPNAME/$JENKINS_APPNAME.log" ] && gzip -c "/var/log/$JENKINS_APPNAME/$JENKINS_APPNAME.log" >"/var/log/$JENKINS_APPNAME/$JENKINS_APPNAME.log.previous.gz"
+if [ -f '/var/log/$JENKINS_APPNAME/$JENKINS_APPNAME.log' ]; then
+	mv '/var/log/$JENKINS_APPNAME/$JENKINS_APPNAME.log' '/var/log/$JENKINS_APPNAME/$JENKINS_APPNAME.log.previous'
+
+	[ -f '/var/log/$JENKINS_APPNAME/$JENKINS_APPNAME.log.previous.gz' ] && rm -f '/var/log/$JENKINS_APPNAME/$JENKINS_APPNAME.log.previous.gz'
+
+	gzip '/var/log/$JENKINS_APPNAME/$JENKINS_APPNAME.log.previous'
+fi
 EOF
 
 # Add our master/slave specific start command 
@@ -345,13 +357,13 @@ if [ -z "$JENKINS_MASTER_URL" ]; then
 	# We are a master
 	cat >>"$DEPLOYMENT_DIR/bin/$JENKINS_APPNAME-startup.sh" <<EOF
 # Jenkins master
-java -Djava.awt.headless=true -jar "$DEPLOYMENT_DIR/jenkins-$JENKINS_RELEASE_TYPE.war" --httpListenAddress=127.0.0.1 >"/var/log/$JENKINS_APPNAME/$JENKINS_APPNAME.log" 2>&1
+java -Djava.awt.headless=true -jar '$DEPLOYMENT_DIR/jenkins-$JENKINS_RELEASE_TYPE.war' --httpListenAddress=127.0.0.1 >'/var/log/$JENKINS_APPNAME/$JENKINS_APPNAME.log' 2>&1
 EOF
 else
 	# We are a slave
 	cat >>"$DEPLOYMENT_DIR/bin/$JENKINS_APPNAME-startup.sh" <<EOF
 # Jenkins slave
-java -Djava.awt.headless=true -jar "$JENKINS_AGENT_JAR" -workDir "$DEPLOYMENT_DIR/slave" -jnlpUrl "$JENKINS_MASTER_URL/computer/$JENKINS_SLAVE_NAME/slave-agent.jnlp" -secret "$JENKINS_SLAVE_SECRET" >"/var/log/$JENKINS_APPNAME/$JENKINS_APPNAME.log" 2>&1
+java -Djava.awt.headless=true -jar '$JENKINS_AGENT_JAR' -workDir '$DEPLOYMENT_DIR/slave' -jnlpUrl '$JENKINS_MASTER_URL/computer/$JENKINS_SLAVE_NAME/slave-agent.jnlp' -secret '$JENKINS_SLAVE_SECRET' >'/var/log/$JENKINS_APPNAME/$JENKINS_APPNAME.log' 2>&1
 EOF
 fi
 
@@ -479,15 +491,31 @@ if [ -z "$JENKINS_MASTER_URL" -a -n "$FIX_FIREWALL" -a -n "$CONFIGURE_SLAVE_CONN
 	# If we are running a Jenkins master node we have to jump through a few more hoops to enable JNLP
 	INFO 'Determing JNLP port - this may take a few moments until Jenkins is able to provide this information'
 
-	INFO 'Jenkins starting ...'
-	echo -n
 	for _a in `seq 1 $JENKINS_JNLP_CHECK_ATTEMPTS`; do
 		echo -n .
 
-		if [ -z "$JENKINS_STARTED" ] && awk '{ if(/"INFO: Started ServerConnector.*127.0.0.1:8080") exit 0; printf(".") }' "/var/log/$JENKINS_APPNAME/$JENKINS_APPNAME.log"; then
-			echo
-			INFO 'Jenkins has partially started now waiting for Jenkins to fuly start ...'
-			echo -n
+		# During initial we perform some basic log rotation, so we need to make sure the Jenkins log exists before we start inspecting it
+		if [ ! -f "/var/log/$JENKINS_APPNAME/$JENKINS_APPNAME.log" ]; then
+			sleep $JENKINS_JNLP_CHECK_DELAY
+
+			continue
+		fi		
+
+		# Our Jenkins setup automatically goes through and installs a number of plugins, once the plugins have been re-installed we restart a few times, so
+		# we need to check for the final restart before we start checking if Jenkins is up and running
+		if [ -z "$JENKINS_STARTED" ] && tail -f "/var/log/$JENKINS_APPNAME/$JENKINS_APPNAME.log" | awk '{
+	if($0 ~ /Performing final restart/){
+		print "started";
+		s=1
+	}else if((s == 1) && ($0 ~ /INFO: Jenkins is fully up and running/)){
+		print "running";
+		exit 0
+	}
+
+	printf(".")
+}'; then
+
+			INFO 'Jenkins has partially started now waiting for Jenkins to fully start ... '
 			JENKINS_STARTED=1
 		fi
 

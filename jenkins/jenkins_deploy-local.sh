@@ -31,7 +31,7 @@ INSTALL_BASE_DIR="${INSTALL_BASE_DIR:-/opt}"
 LOG_ROTATE_COUNT="${LOG_ROTATE_COUNT:-10}"
 LOG_ROTATE_SIZE="${LOG_ROTATE_SIZE:-10m}"
 LOG_ROTATE_FREQUENCY="${LOG_ROTATE_FREQUENCY:-daily}"
-# Fonts & fontconfig are required for AWT
+# Fonts & fontconfig are required for Java/AWT
 BASE_PACKAGES='git java-1.8.0-openjdk-headless httpd dejavu-sans-fonts fontconfig unzip'
 SSH_KEYSCAN_TIMEOUT="${SSH_KEYSCAN_TIMEOUT:-10}"
 #
@@ -485,7 +485,7 @@ INFO
 
 if [ -z "$JENKINS_MASTER_URL" -a -n "$FIX_FIREWALL" -a -n "$CONFIGURE_SLAVE_CONNECTIVITY" ]; then
 	# If we are running a Jenkins master node we have to jump through a few more hoops to enable JNLP
-	INFO 'Determing JNLP port - this may take a few moments until Jenkins is able to provide this information'
+	INFO 'Determing JNLP port - this will take a few moments before Jenkins is able to provide this information'
 
 	for _a in `seq 1 $JENKINS_JNLP_CHECK_ATTEMPTS`; do
 		echo -n .
@@ -524,6 +524,7 @@ if [ -z "$JENKINS_MASTER_URL" -a -n "$FIX_FIREWALL" -a -n "$CONFIGURE_SLAVE_CONN
 		sleep $JENKINS_JNLP_CHECK_DELAY
 	done
 
+	echo
 	[ -z "$JENKINS_JNLP_PORT" ] && FATAL 'Unable to determine Jenkins JNLP port, this can be completed later if required'
 
 	INFO 'Jenkins has now fully started'

@@ -48,6 +48,7 @@ download_jenkins_war(){
 			;;
 	esac
 
+	INFO "Downloading '$release_type' Jenkins war file"
 	if ! curl --progress-bar -L -o jenkins-$release_type.war "$jenkins_war_url"; then
 		[ -f "jenkins-$release_type.war" ] && rm -f jenkins-$release_type.war
 

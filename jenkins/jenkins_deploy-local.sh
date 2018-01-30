@@ -166,7 +166,7 @@ mkdir -p "$DEPLOYMENT_DIR"/{bin,config,.ssh}
 INFO 'Checking if all required packages are installed - this may take a while'
 for _i in $BASE_PACKAGES; do
 	if ! rpm --quiet -q "$_i"; then
-		INFO ". Installing $_i"
+		INFO ". installing $_i"
 		yum install -q -y "$_i"
 	fi
 done

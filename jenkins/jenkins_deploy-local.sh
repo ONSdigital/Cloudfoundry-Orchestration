@@ -524,7 +524,7 @@ if [ -z "$JENKINS_MASTER_URL" -a -n "$FIX_FIREWALL" -a -n "$CONFIGURE_SLAVE_CONN
 		sleep $JENKINS_JNLP_CHECK_DELAY
 	done
 
-	echo
+	echo fully started
 	[ -z "$JENKINS_JNLP_PORT" ] && FATAL 'Unable to determine Jenkins JNLP port, this can be completed later if required'
 
 	INFO 'Jenkins has now fully started'

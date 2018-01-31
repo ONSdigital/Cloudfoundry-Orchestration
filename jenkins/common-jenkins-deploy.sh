@@ -19,8 +19,7 @@ JENKINS_LATEST_WAR_URL="${JENKINS_LATEST_WAR_URL:-http://mirrors.jenkins-ci.org/
 # Jenkins will not start without this plugin
 DEFAULT_PLUGINS="https://updates.jenkins-ci.org/latest/matrix-auth.hpi"
 
-# Default Git repositories
-JENKINS_SCRIPTS_REPO="${JENKINS_SCRIPTS_REPO:-https://github.com/ONSdigital/Cloudfoundry-Or:chestration}"
+# Default Git repository
 JENKINS_CONFIG_SEED_REPO="${JENKINS_CONFIG_SEED_REPO:-https://github.com/ONSdigital/Jenkins-Seed-Config}"
 #############################################
 

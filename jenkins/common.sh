@@ -47,9 +47,19 @@ if [ 0$COLOURS -ge 8 ]; then
 	NONE_COLOUR='\e[0m'
 fi
 
-if git config --global push.default >/dev/null 2>&1; then
-	INFO 'Performing initial git setup'
+if ! git config --global push.default >/dev/null 2>&1; then
+	INFO 'Setting default Git push method'
 	git config --global push.default simple
+fi
+
+if ! git config --global user.email >/dev/null 2>&1; then
+	INFO 'Setting default Git user email'
+	git config --global user.email "${USER:-jenkins}@${HOSTNAME:-localhost}"
+fi
+
+if ! git config --global user.name >/dev/null 2>&1; then
+	INFO 'Setting default Git user name'
+	git config --global user.name "${USER:-jenkins}"
 fi
 
 # Ensure we have a sensible umask

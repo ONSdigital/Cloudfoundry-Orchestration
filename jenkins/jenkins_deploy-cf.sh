@@ -9,15 +9,15 @@ set -e
 #
 # Functionality shared between all of the Jenkins deployment scripts
 BASE_DIR="`dirname $0`"
-JENKINS_COMMON_SH="$BASE_DIR/jenkins-common.sh"
+COMMON_JENKINS_DEPLOY_SH="$BASE_DIR/common-jenkins-deploy.sh"
 
-if [ ! -f "$JENKINS_COMMON_SH" ]; then
-	echo "Unable to find $JENKINS_COMMON_SH"
+if [ ! -f "$COMMON_JENKINS_DEPLOY_SH" ]; then
+	echo "Unable to find $COMMON_JENKINS_DEPLOY_SH"
 
 	exit 1
 fi
 
-. "$JENKINS_COMMON_SH"
+. "$COMMON_JENKINS_DEPLOY_SH"
 ###########################################################
 
 ###########################################################

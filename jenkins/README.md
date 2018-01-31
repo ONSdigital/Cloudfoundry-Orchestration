@@ -15,7 +15,7 @@ Currently, only the deploy\_jenkins-\*.sh scripts have been tested.  The other s
 - `common-jenkins-deploy.sh`: common variables and functions that are used by the deploy\_jenkins-\*.sh scripts
 - `cloudfoundry-preamble.sh`: Cloudfoundry specific preamble to check various variables
 
-## AWS specific scripts
+## AWS specific scripts
 
 - `delete\_aws\_infrastructure.sh`: delete AWS infrastructure
 - `deploy\_aws\_infrastructure.sh`: deploy AWS infrastructure

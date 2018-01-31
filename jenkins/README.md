@@ -4,7 +4,7 @@ A collection of scripts that call the actual deployment scripts.  These have bee
 
 Currently, only the deploy\_jenkins-\*.sh scripts have been tested.  The other scripts may cause all sorts of damage...
 
-## Two scripts that allow deployment of Jenkins
+## Two scripts that allow deployment of Jenkins
 
 - `deploy_jenkins-local.sh`: deploys a local master or slave instance of Jenkins to the local machine
 - `deploy_jenkins-cf.sh`: deploys a master Jenkins instance to Cloudfoundry

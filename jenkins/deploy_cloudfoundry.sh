@@ -47,16 +47,14 @@ fi
 git add --all .
 
 # Commit all of our changes
-git commit -am "$GIT_COMMIT_MESSAGE" || echo 'No changes'
+git commit -am "$GIT_COMMIT_MESSAGE" || WARN 'No changes'
 
 # ... and push
-git push --all || echo 'Nothing to push'
-
+git push --all || WARN 'Nothing to push'
 
 if [ -n "$FAILED" ]; then
-	echo 'The deployment failed - please see above for the reason'
-    echo 'You may be able to restart the build after fixing the problem(s)'
-    echo 'but be sure to select the correct SKIP_* options'
-    
-	exit 1
+	WARN 'The deployment failed - please see above for the reason'
+	WARN 'You may be able to restart the build after fixing the problem(s)'
+
+	FATAL 'Cloudfoundry deployment failed'
 fi

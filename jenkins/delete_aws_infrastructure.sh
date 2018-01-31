@@ -1,6 +1,6 @@
 #!/bin/sh
 #
-# Assumes current working directory contains an existing deployment of AWS infrastructure:
+# Assumes current working directory contains an checkout of an existing deployment of AWS infrastructure
 #
 # Variables:
 #	GIT_BRANCH=Git branch name

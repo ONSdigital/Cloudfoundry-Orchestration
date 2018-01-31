@@ -1,6 +1,8 @@
 #!/bin/sh
 #
 #
+# Variables:
+#
 set -e
 
 

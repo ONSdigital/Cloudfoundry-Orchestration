@@ -1,5 +1,6 @@
 #!/bin/sh
 #
+# Backs up an existing CF deployment
 #
 # Variables:
 #	DEPLOYMENT_NAME=[Deployment Name]

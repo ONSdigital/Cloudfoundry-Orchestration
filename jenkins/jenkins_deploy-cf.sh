@@ -1,5 +1,6 @@
 #!/bin/sh
 #
+# Deploy Jenkins to CF
 #
 set -e
 

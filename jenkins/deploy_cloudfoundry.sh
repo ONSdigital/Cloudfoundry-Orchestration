@@ -1,5 +1,6 @@
 #!/bin/sh
 #
+# Deploy a Cloudfoundry instance onto already deployed infrastructure
 #
 # Variables:
 #	DEPLOYMENT_NAME=[Deployment Name]

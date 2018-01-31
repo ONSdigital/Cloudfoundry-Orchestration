@@ -1,6 +1,7 @@
 #!/bin/sh
-
-#set +x
+#
+# Shared functions and variables
+#
 set -e
 
 #############################################
@@ -38,6 +39,7 @@ branch_to_name(){
 # Some BSD sed variants don't handle -r they use -E for extended regular expression
 sed </dev/null 2>&1 | grep -q GNU && SED_OPT='-r' || SED_OPT='-E'
 
+#############################################
 # Configure colour console - if possible
 COLOURS="`tput colors`"
 
@@ -46,7 +48,10 @@ if [ 0$COLOURS -ge 8 ]; then
 	INFO_COLOUR='\e[1;36m'
 	NONE_COLOUR='\e[0m'
 fi
+#############################################
 
+#############################################
+# Git config
 if ! git config --global push.default >/dev/null 2>&1; then
 	INFO 'Setting default Git push method'
 	git config --global push.default simple
@@ -61,6 +66,9 @@ if ! git config --global user.name >/dev/null 2>&1; then
 	INFO 'Setting default Git user name'
 	git config --global user.name "${USER:-jenkins}"
 fi
+#############################################
 
+#############################################
 # Ensure we have a sensible umask
 umask 022
+#############################################

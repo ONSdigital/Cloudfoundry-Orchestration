@@ -1,5 +1,8 @@
 #!/bin/sh
 #
+# Deploy a Jenkins master or slave to the local server
+#
+
 set -e
 
 ###########################################################

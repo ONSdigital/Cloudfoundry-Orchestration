@@ -1,5 +1,6 @@
 #!/bin/sh
 #
+# Preamble script called by most of the CF scripts
 #
 # Variables:
 #	ADMIN_EMAIL_ADDRESS=[Administrator's email address]

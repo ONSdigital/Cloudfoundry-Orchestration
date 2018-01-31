@@ -1,5 +1,7 @@
 #!/bin/sh
-
+#
+# Common variables and functions for the jenkins_* scripts
+#
 #set +x
 set -e
 

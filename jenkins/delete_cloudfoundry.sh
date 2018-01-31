@@ -1,5 +1,6 @@
 #!/bin/sh
 #
+# Delete a Cloudfoundry instance
 #
 # Variables:
 #	GIT_BRANCH=Git branch

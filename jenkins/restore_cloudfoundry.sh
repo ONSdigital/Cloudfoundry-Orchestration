@@ -1,5 +1,6 @@
 #!/bin/sh
 #
+# Restore a CF from S3
 #
 # Variables:
 #	DEPLOYMENT_NAME=[Deployment Name]

@@ -3,6 +3,9 @@
 #set +x
 set -e
 
+# Load the globally common bits
+. "$BASE_DIR/common.sh"
+
 #############################################
 JENKINS_APPNAME="${JENKINS_APPNAME:-jenkins}"
 JENKINS_RELEASE_TYPE="${JENKINS_RELEASE_TYPE:-STABLE}"
@@ -18,21 +21,6 @@ DEFAULT_PLUGINS="https://updates.jenkins-ci.org/latest/matrix-auth.hpi"
 INVOCATION_ORIGINAL="$0 $@"
 
 #############################################
-FATAL(){
-	# echo -ne is a {Linux,Bash}-ish-ism
-	echo -ne $FATAL_COLOUR
-	echo "FATAL $@"
-	echo -ne $NONE_COLOUR
-
-	exit 1
-}
-
-INFO(){
-	echo -ne $INFO_COLOUR
-	echo "INFO $@"
-	echo -ne $NONE_COLOUR
-}
-
 download_jenkins_war(){
 	local release_type="$1"
 
@@ -199,28 +187,4 @@ scan_ssh_hosts(){
                 echo $_h | sed $SED_OPT -e 's,^[a-z]+://([^@]+@)([a-z0-9\.-]+)([:/].*)?$,\2,g' | xargs ssh-keyscan -T "$SSH_KEYSCAN_TIMEOUT"
         done
 }
-
 #############################################
-
-
-#############################################
-# Detect the SED variant - this is only really useful when running jenkins/jenkins_deploy.sh
-# Some BSD sed variants don't handle -r they use -E for extended regular expression
-sed </dev/null 2>&1 | grep -q GNU && SED_OPT='-r' || SED_OPT='-E'
-
-# Configure colour console - if possible
-COLOURS="`tput colors`"
-
-if [ 0$COLOURS -ge 8 ]; then
-	FATAL_COLOUR='\e[1;31m'
-	INFO_COLOUR='\e[1;36m'
-	NONE_COLOUR='\e[0m'
-fi
-
-if git config --global push.default >/dev/null 2>&1; then
-	INFO 'Performing initial git setup'
-	git config --global push.default simple
-fi
-
-# Ensure we have a sensible umask
-umask 022

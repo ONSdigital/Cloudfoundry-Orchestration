@@ -4,6 +4,7 @@
 # Variables:
 #	DEPLOYMENT_NAME=[Deployment Name]
 #	EXISTING_DEPLOYMENT=[true|false]
+#	GIT_BRANCH=Git branch name
 #	GIT_COMMIT_MESSAGE=Git commit message
 #	RESTORE_FROM_BACKUP=[true|false]
 

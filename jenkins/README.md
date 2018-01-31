@@ -17,20 +17,20 @@ Currently, only the deploy\_jenkins-\*.sh scripts have been tested.  The other s
 
 ## AWS specific scripts
 
-- `delete\_aws\_infrastructure.sh`: delete AWS infrastructure
-- `deploy\_aws\_infrastructure.sh`: deploy AWS infrastructure
+- `delete_aws_infrastructure.sh`: delete AWS infrastructure
+- `deploy_aws_infrastructure.sh`: deploy AWS infrastructure
 
 ## Cloudfoundry specific scripts
 
-- `backup\_cloudfoundry.sh`: backup Cloudfoundry
-- `delete\_cloudfoundry.sh`: delete Cloudfoundry
-- `deploy\_cloudfoundry.sh`: deploy Cloudfoundry onto existing infrastructure
+- `backup_cloudfoundry.sh`: backup Cloudfoundry
+- `delete_cloudfoundry.sh`: delete Cloudfoundry
+- `deploy_cloudfoundry.sh`: deploy Cloudfoundry onto existing infrastructure
 
 ## More Jenkins specific scripts
 
-- `clean\_local\_environment.sh`: clean directories under the user's home directory
-- `jenkins\_backup.sh`: backup a Jenkins instances into Git
-- `restore\_cloudfoundry.sh`: restore Cloudfoundry from an S3 backup
+- `clean_local_environment.sh`: clean directories under the user's home directory
+- `jenkins_backup.sh`: backup a Jenkins instances into Git
+- `restore_cloudfoundry.sh`: restore Cloudfoundry from an S3 backup
 
 ## Misc scripts
 

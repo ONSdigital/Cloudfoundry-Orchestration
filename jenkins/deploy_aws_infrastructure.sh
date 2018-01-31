@@ -3,10 +3,11 @@
 # Assumes current working directory contains an checkout of a the master/non-deployed branch of a Cloudfoundry-Deployment repo
 #
 # Variables:
-#	GIT_BRANCH=Git branch name
-#	DELETE_GIT_BRANCH=[true|false]
 #	CREATE_DEPLOYMENT=true|false
-#	DEPLOYMENT_COMMIT_MESSAGE=Git commit deployment message
+#	DELETE_GIT_BRANCH=[true|false]
+#	DEPLOYMENT_COMMIT_MESSAGE=[Git commit deployment message]
+#	DEPLOYMENT_NAME=[Deployment Name]
+#	GIT_BRANCH=Git branch name
 
 set -e
 

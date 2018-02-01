@@ -5,7 +5,6 @@
 # Variables:
 #	ADMIN_EMAIL_ADDRESS=[Admin email address]
 #	DEPLOYMENT_NAME=[Deployment Name]
-#	EXISTING_DEPLOYMENT=[true|false]
 #	GIT_BRANCH=Git branch name
 #	GIT_COMMIT_MESSAGE=Git commit message
 #	SKIP_CF_SETUP=[true|false]
@@ -28,12 +27,9 @@ fi
 "$CF_PREAMBLE"
 ###########################################################
 
-export DEPLOYMENT_DIR='deployment'
-
 if [ -z "$GIT_COMMIT_MESSAGE" ]; then
-	[ -n "$EXISTING_DEPLOYMENT" ] && GIT_COMMIT_MESSAGE="New deployment $DEPLOYMENT_NAME" || GIT_COMMIT_MESSAGE="Updated deployment $DEPLOYMENT_NAME"
+	[ x"$GIT_BRANCH" = x'origin/master' ] && GIT_COMMIT_MESSAGE="New deployment $DEPLOYMENT_NAME" || GIT_COMMIT_MESSAGE="Updated deployment $DEPLOYMENT_NAME"
 fi
-
 
 # Deploy Cloudfoundry instance
 ./Scripts/bin/deploy_cloudfoundry.sh "$DEPLOYMENT_NAME" || FAILED=1
@@ -42,7 +38,7 @@ fi
 if [ -z "$FAILED" -a -n "$ADMIN_EMAIL_ADDRESS" -a -n "$SKIP_CF_SETUP" -a x"$SKIP_CF_SETUP" != x"true" ]; then
 	./Scripts/bin/setup_cf.sh "$DEPLOYMENT_NAME" "${ADMIN_EMAIL_ADDRESS:-NONE}" || FAILED=1
 
-	[ -f "$DEPLOYMENT_DIR/$DEPLOYMENT_NAME/cf-credentials-admin.sh" ] && git add "$DEPLOYMENT_DIR/$DEPLOYMENT_NAME/cf-credentials-admin.sh" 
+	[ -f "deployment/$DEPLOYMENT_NAME/cf-credentials-admin.sh" ] && git add "deployment/$DEPLOYMENT_NAME/cf-credentials-admin.sh" 
 fi
 
 git add --all .

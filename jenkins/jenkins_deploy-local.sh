@@ -2,6 +2,16 @@
 #
 # Deploy a Jenkins master or slave to the local server
 #
+# Variables:
+#	ROOT_USER=[Root user]
+#	ROOT_GROUP=[Root user's group]
+#	LOG_ROTATE_COUNT=[Number of rotated logs to keep'
+#	LOG_ROTATE_SIZE=[Rotate logs at this size]
+#	LOG_ROTATE_FREQUENCY=[Rotate logs this frequently]
+#	SSH_KEYSCAN_TIMEOUT=[SSH keyscan timeout]
+#	JENKINS_JNLP_CHECK_DELAY==[Delay, in seconds, between Jenkins availability check]
+#	JENKINS_JNLP_CHECK_ATTEMPTS=[Number of checks for Jenkins availability before giving up]
+#	... other variables are used, but these can be seen under the 'Parse options' section
 
 set -e
 
@@ -25,7 +35,7 @@ fi
 # Local install specific default values
 #
 ROOT_USER="${ROOT_USER:-root}"
-ROOT_GROUP="${ROOT_USER:-wheel}"
+ROOT_GROUP="${ROOT_GROUP:-wheel}"
 #
 JENKINS_USER="${JENKINS_USER:-jenkins}"
 JENKINS_GROUP="${JENKINS_GROUP:-jenkins}"
@@ -44,7 +54,6 @@ FIX_FIREWALL=1
 FIX_SELINUX=1
 
 # In seconds
-JENKINS_START_DELAY="${JENKINS_START_DELAY:-120}"
 JENKINS_JNLP_CHECK_DELAY="${JENKINS_JNLP_CHECK_DELAY:-5}"
 JENKINS_JNLP_CHECK_ATTEMPTS="${JENKINS_JNLP_CHECK_ATTEMPTS:-100}"
 ###########################################################

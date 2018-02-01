@@ -30,7 +30,7 @@ fi
 
 ###########################################################
 
-CF_SCRIPTS_DIR='Scripts':
+CF_SCRIPTS_DIR='Scripts'
 
 [ -f bin/protected_branch.sh -a -x bin/protected_branch.sh ] && ./bin/protected_branch.sh
 

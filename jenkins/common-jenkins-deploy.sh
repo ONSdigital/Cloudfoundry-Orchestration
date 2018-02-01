@@ -2,6 +2,12 @@
 #
 # Common variables and functions for the jenkins_* scripts
 #
+# Variables:
+#	JENKINS_APPNAME=Jenkins Application Name
+#	JENKINS_RELEASE_TYPE=[stable|latest]
+#	JENKINS_STABLE_WAR_URL=Jenkins stable WAR download URL
+#	JENKINS_LATEST_WAR_URL=Jenkins latest WAR download URL
+#
 #set +x
 set -e
 
@@ -37,7 +43,7 @@ download_jenkins_war(){
 			local jenkins_war_url="$JENKINS_STABLE_WAR_URL"
 			;;
 		*)
-			FATAL "Unknown Jenkins type: $JENKINS_RELEASE_TYPE. Valid types: latest or table"
+			FATAL "Unknown Jenkins type: $jenkins_release_type. Valid types: latest or stable"
 			;;
 	esac
 

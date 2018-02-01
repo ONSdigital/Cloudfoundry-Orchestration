@@ -3,11 +3,12 @@
 # Deploy a Cloudfoundry instance onto already deployed infrastructure
 #
 # Variables:
+#	ADMIN_EMAIL_ADDRESS=[Admin email address]
 #	DEPLOYMENT_NAME=[Deployment Name]
 #	EXISTING_DEPLOYMENT=[true|false]
 #	GIT_BRANCH=Git branch name
 #	GIT_COMMIT_MESSAGE=Git commit message
-#	RESTORE_FROM_BACKUP=[true|false]
+#	SKIP_CF_SETUP=[true|false]
 
 set -e
 
@@ -30,9 +31,7 @@ fi
 export DEPLOYMENT_DIR='deployment'
 
 if [ -z "$GIT_COMMIT_MESSAGE" ]; then
-	[ x"$RESTORE_FROM_BACKUP" = x"true" ] && COMMIT_PREFIX="Restored" || COMMIT_PREFIX="Updated"
-    
-	[ -n "$EXISTING_DEPLOYMENT" ] && GIT_COMMIT_MESSAGE="New deployment $DEPLOYMENT_NAME" || GIT_COMMIT_MESSAGE="$COMMIT_PREFIX deployment $DEPLOYMENT_NAME"
+	[ -n "$EXISTING_DEPLOYMENT" ] && GIT_COMMIT_MESSAGE="New deployment $DEPLOYMENT_NAME" || GIT_COMMIT_MESSAGE="Updated deployment $DEPLOYMENT_NAME"
 fi
 
 
@@ -40,7 +39,7 @@ fi
 ./Scripts/bin/deploy_cloudfoundry.sh "$DEPLOYMENT_NAME" || FAILED=1
 
 # Generate admin credentials if we don't already have some
-if [ x"$RESTORE_FROM_BACKUP" != x"true" -a -z "$FAILED" -a -n "$ADMIN_EMAIL_ADDRESS" -a -n "$SKIP_CF_SETUP" -a x"$SKIP_CF_SETUP" != x"true" ]; then
+if [ -z "$FAILED" -a -n "$ADMIN_EMAIL_ADDRESS" -a -n "$SKIP_CF_SETUP" -a x"$SKIP_CF_SETUP" != x"true" ]; then
 	./Scripts/bin/setup_cf.sh "$DEPLOYMENT_NAME" "${ADMIN_EMAIL_ADDRESS:-NONE}" || FAILED=1
 
 	[ -f "$DEPLOYMENT_DIR/$DEPLOYMENT_NAME/cf-credentials-admin.sh" ] && git add "$DEPLOYMENT_DIR/$DEPLOYMENT_NAME/cf-credentials-admin.sh" 

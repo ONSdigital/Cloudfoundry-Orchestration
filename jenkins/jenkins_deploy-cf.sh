@@ -2,6 +2,10 @@
 #
 # Deploy Jenkins to CF
 #
+# Variables:
+#	CF_CLI_URL=[Location of Cloudfoundry CLI]
+#	... other variables are used, but these can be seen under the 'Parse options' section
+
 set -e
 
 

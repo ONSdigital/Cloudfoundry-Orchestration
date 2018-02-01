@@ -1,7 +1,19 @@
 #!/bin/sh
 #
+# Backs up a Jenkins configuration to Git
+#
 #
 # Variables:
+#	GIT_COMMIT_MESSAGE=Git commit message
+#	GIT_ADD_FILES=[Comma seperated list of files to add]
+#	GIT_DELETE_FILES=[Comma seperated list of files to delete]
+#	GIT_IGNORES=[Comma seperated list of files to ignore]
+#	JENKINS_BACKUP_USERNAME=[Jenkins backup username]
+#	JENKINS_BACKUP_PASSWORD=[Jenkins backup password]
+#	JENKINS_CLI_JAR=[Jenkins CLI Jar location]
+#	JENKINS_LOCATION=[hostname:port of Jenkins]
+#	PORT=[Jenkins port number]
+#	WEBAPP_HOME=[Jenkins webapp home]
 #
 set -e
 

@@ -3,8 +3,10 @@
 # Backs up an existing CF deployment
 #
 # Variables:
-#	DEPLOYMENT_NAME=[Deployment Name]
+#	DEPLOYMENT_NAME=Deployment Name
 #	S3_BACKUP=[true|false]
+#	S3_BACKUP_BUCKET=S3 Backup Bucket Name
+#
 
 set -e
 
@@ -28,13 +30,13 @@ fi
 ./Scripts/bin/backup_cloudfoundry-databases.sh "$DEPLOYMENT_NAME" || DATABASE_FAILED=1
 
 if [ x"$S3_BACKUP" = x'true' ]; then
-	[ -z "$BACKUP_BUCKET" ] && FATAL 'No S3 backup bucket name provided'
+	[ -z "$S3_BACKUP_BUCKET" ] && FATAL 'No S3 backup bucket name provided'
 
 	# Backup S3 buckets
-	./Scripts/bin/backup_cloudfoundry-s3.sh "$DEPLOYMENT_NAME" backup "s3://$BACKUP_BUCKET/$DEPLOYMENT_NAME/s3_backups" || S3_FAILED=1
+	./Scripts/bin/backup_cloudfoundry-s3.sh "$DEPLOYMENT_NAME" backup "s3://$S3_BACKUP_BUCKET/$DEPLOYMENT_NAME/s3_backups" || S3_FAILED=1
 
 	# Backup the branch
-	./Scripts/bin/backup_cloudfoundry-branch.sh "$DEPLOYMENT_NAME" backup "s3://$BACKUP_BUCKET/$DEPLOYMENT_NAME/branch_backup" || BRANCH_FAILED=1
+	./Scripts/bin/backup_cloudfoundry-branch.sh "$DEPLOYMENT_NAME" backup "s3://$S3_BACKUP_BUCKET/$DEPLOYMENT_NAME/branch_backup" || BRANCH_FAILED=1
 fi
 
 if [ -n "$DATABASE_FAILED" -o -n "$S3_FAILED" -o -n "$BRANCH_FAILED" ]; then

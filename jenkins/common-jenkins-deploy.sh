@@ -1,4 +1,3 @@
-#!/bin/sh
 #
 # Common variables and functions for the jenkins_* scripts
 #
@@ -11,8 +10,8 @@
 #set +x
 set -e
 
-# Load the globally common bits
-. "$BASE_DIR/common.sh"
+# Load the common Jenkins bits
+. "$BASE_DIR/common-jenkins.sh"
 
 #############################################
 JENKINS_APPNAME="${JENKINS_APPNAME:-jenkins}"

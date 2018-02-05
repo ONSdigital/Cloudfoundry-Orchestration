@@ -1,15 +1,14 @@
-# Cloudfoundry CLI Helper Scripts
+# Cloudfoundry Deployment Scripts
 
-Collection of scripts to perform various CF CLI commands.  Having helper scripts ensures things default to being done in a consistent way.
+A collection of scripts that call the actual deployment scripts.  These have been written to extract as much of the scripting out of Jenkins as possible.
 
-## Creation scripts
+## Common files
 
-- `create-orgs-roles.sh`
-	- Creates an organisation and assigns OrgManager roles to the listed users
+- `cloudfoundry-preamble.sh`: Cloudfoundry specific preamble to check various variables
 
-- `create-quota.sh`
-	- Creates a quota, by default it creates a 'default' quota
+## Cloudfoundry specific scripts
 
-- `create-users.sh`
-	- Creates the listed users.
-	- This script is to be used if ActiveDirectory is not available and UAA doesn't have its signup feature enabled
+- `backup_cloudfoundry.sh`: backup Cloudfoundry
+- `delete_cloudfoundry.sh`: delete Cloudfoundry
+- `deploy_cloudfoundry.sh`: deploy Cloudfoundry onto existing infrastructure
+- `restore_cloudfoundry.sh`: restore Cloudfoundry from an S3 backup

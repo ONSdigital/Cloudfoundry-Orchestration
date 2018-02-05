@@ -11,7 +11,7 @@
 set -e
 
 # Load the common Jenkins bits
-. "$BASE_DIR/common-jenkins.sh"
+. "$BASE_DIR/../common/common.sh"
 
 #############################################
 JENKINS_APPNAME="${JENKINS_APPNAME:-jenkins}"

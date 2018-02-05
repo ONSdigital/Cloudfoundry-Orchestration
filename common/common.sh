@@ -37,6 +37,27 @@ EOF
 }
 
 #############################################
+# Git config
+DEFAULT_ORIGIN="${DEFAULT_ORIGIN:-origin}"
+DEFAULT_BRANCH="${DEFAULT_BRANCH:-master}"
+
+if ! git config --global push.default >/dev/null 2>&1; then
+	INFO 'Setting default Git push method'
+	git config --global push.default simple
+fi
+
+if ! git config --global user.email >/dev/null 2>&1; then
+	INFO 'Setting default Git user email'
+	git config --global user.email "${USER:-jenkins}@${HOSTNAME:-localhost}"
+fi
+
+if ! git config --global user.name >/dev/null 2>&1; then
+	INFO 'Setting default Git user name'
+	git config --global user.name "${USER:-jenkins}"
+fi
+#############################################
+
+#############################################
 # Detect the SED variant - this is only really useful when running jenkins/jenkins_deploy.sh
 # Some BSD sed variants don't handle -r they use -E for extended regular expression
 sed </dev/null 2>&1 | grep -q GNU && SED_OPT='-r' || SED_OPT='-E'

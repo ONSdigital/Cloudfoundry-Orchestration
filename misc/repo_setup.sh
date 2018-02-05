@@ -44,8 +44,11 @@ if [ x"$REMOTE_REPO" = x'fake' ]; then
 	REMOTE_REPO="file:///$PWD"
 
 	git init --bare
+
+	cd -
 fi
 
+INFO "Creating $GIT_REPO"
 mkdir -p "$GIT_REPO"
 
 cd "$GIT_REPO"
@@ -68,5 +71,8 @@ for _r in "$RELEASE_REPOS"; do
 	git submodule add "$GIT_BASE_URL/$_r" "vendor/$_r"
 done
 
+INFO "Pushing changes to $REMOTE_REPO"
 git commit -m 'Initial repository setup'
 git push --all
+
+INFO "Local checkout of $REMOTE_REPO is available: $GIT_REPO"

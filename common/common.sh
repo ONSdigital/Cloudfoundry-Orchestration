@@ -11,29 +11,29 @@ set -e
 FATAL(){
 	# We use printf as this will handle the escape sequences
 	# echo -ne is a {Linux,Bash}-ish-ism
-	printf "%s" $FATAL_COLOUR
+	printf "%b" $FATAL_COLOUR
 	cat <<EOF
 FATAL $@
 EOF
-	printf "%s" $NONE_COLOUR
+	printf "%b" $NONE_COLOUR
 
 	exit 1
 }
 
 WARN(){
-	printf "%s" "$WARN_COLOUR"
+	printf "%b" "$WARN_COLOUR"
 	cat <<EOF
 WARN $@
 EOF
-	printf "%s" "$NONE_COLOUR"
+	printf "%b" "$NONE_COLOUR"
 }
 
 INFO(){
-	printf "%s" "$INFO_COLOUR"
+	printf "%b" "$INFO_COLOUR"
 	cat <<EOF
 INFO $@
 EOF
-	printf "%s" "$NONE_COLOUR"
+	printf "%b" "$NONE_COLOUR"
 }
 
 #############################################

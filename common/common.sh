@@ -36,6 +36,14 @@ EOF
 	printf "%b" "$NONE_COLOUR"
 }
 
+branch_to_name(){
+	local branch="$1"
+
+	[ -z "$branch" ] && FATAL 'No branch name provided'
+
+	basename "$branch"
+}
+
 #############################################
 # Git config
 DEFAULT_ORIGIN="${DEFAULT_ORIGIN:-origin}"

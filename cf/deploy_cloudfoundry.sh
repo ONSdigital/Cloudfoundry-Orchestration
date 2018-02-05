@@ -24,7 +24,7 @@ if [ ! -f "$CF_PREAMBLE" ]; then
 	exit 1
 fi
 
-"$CF_PREAMBLE"
+. "$CF_PREAMBLE"
 ###########################################################
 
 if [ -z "$GIT_COMMIT_MESSAGE" ]; then

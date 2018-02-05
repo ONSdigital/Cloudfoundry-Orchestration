@@ -29,6 +29,10 @@ fi
 
 [ -f Scripts/bin/protected_branch.sh -a -x Scripts/bin/protected_branch.sh ] && ./Scripts/bin/protected_branch.sh
 
+GIT_BRANCH="`git branch | awk '/^\* +/{print $NF}'`"
+
+[ -z "$GIT_BRANCH" ] && FATAL 'Unable to determine Git branch'
+
 DEPLOYMENT_NAME="`branch_to_name "$GIT_BRANCH"`"
 
 [ -z "$GIT_BRANCH" ] && FATAL 'No branch provided'

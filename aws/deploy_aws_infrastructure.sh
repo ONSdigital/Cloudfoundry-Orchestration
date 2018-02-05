@@ -2,6 +2,9 @@
 #
 # Assumes current working directory contains an checkout of a the master/non-deployed branch of a Cloudfoundry-Deployment repo
 #
+# Paramters:
+#	[Deployment Name]
+#
 # Variables:
 #	CREATE_DEPLOYMENT=true|false
 #	DELETE_GIT_BRANCH=[true|false]
@@ -16,7 +19,7 @@ set -e
 #
 # Functionality shared between all of the Jenkins deployment scripts
 BASE_DIR="`dirname $0`"
-COMMON_SH="$BASE_DIR/common.sh"
+COMMON_SH="$BASE_DIR/../common/common.sh"
 
 if [ ! -f "$COMMON_SH" ]; then
 	echo "Unable to find $COMMON_SH"
@@ -31,6 +34,8 @@ fi
 ###########################################################
 
 CF_SCRIPTS_DIR='Scripts'
+
+DEPLOYMENT_NAME="${1:-$DEPLOYMENT_NAME}"
 
 [ -f bin/protected_branch.sh -a -x bin/protected_branch.sh ] && ./bin/protected_branch.sh
 
@@ -51,54 +56,58 @@ else
 	DEPLOYMENT_NAME="`branch_to_name "$GIT_BRANCH"`"
 fi
 
-if [ x"$CREATE_DEPLOYMENT" = x'true' ]; then
-	[ -z "$DEPLOYMENT_COMMIT_MESSAGE" ] && DEPLOYMENT_COMMIT_MESSAGE='Initial deployment'
-
-	INFO 'Checking for existing Git branch'
-	git branch -r | grep -qE "\*? +$DEPLOYMENT_NAME$" || FATAL 'Existing Git branch exists'
-
-	INFO 'Creating new Git branch'
-	git checkout -b "$DEPLOYMENT_NAME"
-
-	INFO 'Installing vendored repositories'
-	for _r in `ls vendor/`; do
-		if [ ! -d "$_r" ]; then
-			echo "$_r" | grep -Eq -- '-release' && dst='releases' || dst='.'
-			INFO ". installing $_r to $dst/"
-
-			[ -d "$_r" ] || mkdir -p "$dst"
-
-			cp -rp "vendor/$_r" "$dst"
-
-			# We don't want to copy over any of the .git files otherwise we'll confuse the repository contained at the top level
-			[ -e "$dst/$_r/.git" ] && rm -rf "$dst/$_r/.git"
-
-			git add "$dst/$i"
-
-		fi
-	done
-
-	[ -d bin ] || mkdir -p bin
-
-	INFO 'Installing scripts'
-	for _s in vendor_update.sh protected_branch.sh; do
-		INFO ". installing $_s"
-		cp "Scripts/bin/$_s" bin
-	done
-
-	git add bin
-
-	# Create the AWS infrastructure
-	"$CF_SCRIPTS_DIR/bin/create_aws_cloudformation.sh" "$DEPLOYMENT_NAME" || FAILED='true'
-
-	ACTION='Creating'
-else
+if [ x"$CREATE_DEPLOYMENT" = x'false' -a -d deployment ]; then
 	[ -z "$DEPLOYMENT_COMMIT_MESSAGE" ] && DEPLOYMENT_COMMIT_MESSAGE='Updated deployment'
 
 	# Update an existing AWS infrastructure
 	"$CF_SCRIPTS_DIR/bin/update_aws_cloudformation.sh" "$DEPLOYMENT_NAME" || FAILED='true'
 
 	ACTION='Updating'
+else
+	[ -z "$DEPLOYMENT_COMMIT_MESSAGE" ] && DEPLOYMENT_COMMIT_MESSAGE='Initial deployment'
+
+	INFO 'Checking for existing Git branch'
+
+	if git branch -r | grep -qE "\*? +[^/]+/$DEPLOYMENT_NAME$"; then
+		WARN 'Existing Git branch exists'
+		git branch | grep -qE "\* +$DEPLOYMENT_NAME$" || FATAL "$DEPLOYMENT_NAME already exists remotely, but has not been checked out locally"
+	else
+		INFO 'Creating new Git branch'
+		git checkout -b "$DEPLOYMENT_NAME"
+
+		INFO 'Installing vendored repositories'
+		for _r in `ls vendor/`; do
+			if [ ! -d "$_r" ]; then
+				echo "$_r" | grep -Eq -- '-release' && dst='releases' || dst='.'
+				INFO ". installing $_r to $dst/"
+
+				[ -d "$_r" ] || mkdir -p "$dst"
+
+				cp -rp "vendor/$_r" "$dst"
+
+				# We don't want to copy over any of the .git files otherwise we'll confuse the repository contained at the top level
+				[ -e "$dst/$_r/.git" ] && rm -rf "$dst/$_r/.git"
+
+				git add "$dst/$i"
+
+			fi
+		done
+
+		[ -d bin ] || mkdir -p bin
+
+		INFO 'Installing scripts'
+		for _s in vendor_update.sh protected_branch.sh; do
+			INFO ". installing $_s"
+			cp "Scripts/bin/$_s" bin
+		done
+
+		git add bin
+	fi
+
+	# Create the AWS infrastructure
+	"$CF_SCRIPTS_DIR/bin/create_aws_cloudformation.sh" "$DEPLOYMENT_NAME" || FAILED='true'
+
+	ACTION='Creating'
 fi
 
 INFO 'Updating Git repository'

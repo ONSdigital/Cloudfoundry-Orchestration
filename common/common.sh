@@ -30,7 +30,7 @@ EOF
 
 INFO(){
 	printf "%s" "$INFO_COLOUR"
-	dwicat <<EOF
+	cat <<EOF
 INFO $@
 EOF
 	printf "%s" "$NONE_COLOUR"

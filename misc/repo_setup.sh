@@ -68,14 +68,13 @@ git checkout -b master
 
 git remote add origin "$REMOTE_REPO"
 
-mkdir -p vendor
+mkdir -p vendor releases
 
 for _r in $REPO_NAMES; do
 	INFO "Adding $_r repository"
 
 	if echo "$_r" | grep -Eq -- '-release'; then
-		# Releases go under their own folder
-		git submodule add "$GIT_BASE_URL/releases/$_r" "vendor/$_r"
+		git submodule add "$GIT_BASE_URL/$_r" "vendor/$_r"
 	else
 		# We strip off the Cloudfoundry- prefix
 		git submodule add "$GIT_BASE_URL/Cloudfoundry-$_r" "vendor/$_r"

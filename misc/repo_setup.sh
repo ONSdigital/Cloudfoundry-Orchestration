@@ -68,7 +68,7 @@ git checkout -b master
 
 git remote add origin "$REMOTE_REPO"
 
-mkdir -p vendor releases
+mkdir -p vendor
 
 for _r in $REPO_NAMES; do
 	INFO "Adding $_r repository"

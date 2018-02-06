@@ -26,7 +26,7 @@ fi
 ###########################################################
 
 PASSWORD_LENGTH="${PASSWORD_LENGTH:-16}"
-USERS_CSV="${USERS_CSV:-users.csv}":w
+USERS_CSV="${USERS_CSV:-users.csv}"
 
 USERS="${@:-$USERS}"
 
@@ -46,4 +46,4 @@ for _u in $USERS; do
 done
 
 INFO 'Users CSV:'
-ls "$USERS_SV"
+ls "$USERS_CSV"

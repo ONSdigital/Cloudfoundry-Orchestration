@@ -22,7 +22,9 @@ JENKINS_STABLE_WAR_URL="${JENKINS_STABLE_WAR_URL:-http://mirrors.jenkins-ci.org/
 JENKINS_LATEST_WAR_URL="${JENKINS_LATEST_WAR_URL:-http://mirrors.jenkins-ci.org/war/latest/jenkins.war}"
 
 # Jenkins will not start without this plugin
-DEFAULT_PLUGINS="https://updates.jenkins-ci.org/latest/matrix-auth.hpi"
+DEFAULT_PLUGIN_REPO="${DEFAULT_PLUGIN_REPO:-https://updates.jenkins-ci.org/latest}"
+# Without this plugin the initial setup fails
+DEFAULT_PLUGINS="${DEFAULT_PLUGINS:-$DEFAULT_PLUGIN_REPO/matrix-auth.hpi}"
 
 # Default Git repository
 JENKINS_CONFIG_SEED_REPO="${JENKINS_CONFIG_SEED_REPO:-https://github.com/ONSdigital/Jenkins-Seed-Config}"

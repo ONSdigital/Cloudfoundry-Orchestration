@@ -181,7 +181,7 @@ download_plugins(){
 	for _p in $plugins; do
 		INFO "Downloading $_p"
 
-		curl -O "$_p"
+		curl -LO "$_p"
 	done
 
 	IFS="$OLDIFS"

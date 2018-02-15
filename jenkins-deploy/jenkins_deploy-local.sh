@@ -112,6 +112,11 @@ for i in `seq 1 $#`; do
 			JENKINS_SCRIPTS_REPO="$2"
 			shift 2
 			;;
+		--no-auto-plugin-install)
+			# Do not automatically install any plugins - use the --plugins option to add plugins, or add the plugins
+			# manually post-install
+			NO_PLUGIN_INSTALL=1
+			;;
 		--no-fix-firewall)
 			# Do not configure the firewall
 			unset FIX_FIREWALL
@@ -221,12 +226,17 @@ else
 	# Fix the Git repository source names and push
 	git_push_repo_cleanup jenkins_home
 
-	INFO 'Setting up Jenkins to install required plugins'
+	INFO 'Setting up Jenkins configuration'
 	cd "$DEPLOYMENT_DIR/jenkins_home"
 
-	# Rename our Groovy init script so that Jenkins runs it when it starts.  Once run, the script will
-	# delete itself. We do it this way to avoid confusing Git
-	cp _init.groovy init.groovy
+	if [ -n "$NO_PLUGIN_INSTALL" ]; then
+		INFO 'Not enabling Groovy plugin install script'
+	else
+		INFO 'Enabling Groovy plugin install script'
+		# Rename our Groovy init script so that Jenkins runs it when it starts.  Once run, the script will
+		# delete itself. We do it this way to avoid confusing Git
+		cp _init.groovy init.groovy
+	fi
 
 	# Disable initial config.xml - it'll get renamed by init.groovy
 	mv config.xml _config.xml

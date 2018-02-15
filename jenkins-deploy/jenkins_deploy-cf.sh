@@ -91,6 +91,11 @@ for i in `seq 1 $#`; do
 			JENKINS_SCRIPTS_REPO="$2"
 			shift 2
 			;;
+		--no-auto-plugin-install)
+			# Do not automatically install any plugins - use the --plugins option to add plugins, or add the plugins
+			# manually post-install
+			NO_PLUGIN_INSTALL=1
+			;;
 		--deploy-scripts-repo)
 			# ... as above, but for use during the deployment phase if the URLs are different
 			DEPLOY_JENKINS_SCRIPTS_REPO="$2"
@@ -336,7 +341,20 @@ export REAL_HOME="/home/$USER"
 tar -zxf jenkins_home_scripts.tgz
 
 cd "$JENKINS_HOME"
+EOF_OUTER
 
+if [ -n "$NO_PLUGIN_INSTALL" ]; then
+	INFO 'Not enabling Groovy plugin install script'
+else
+	INFO 'Enabling Groovy plugin install script'
+	cat >>.profile.d/00_jenkins_preconfig.sh <<'EOF_OUTER'
+# Rename our Groovy init script so that Jenkins runs it when it starts.  Once run, the script will
+# delete itself. We do it this way to avoid confusing Git
+cp _init.groovy init.groovy
+EOF_OUTER
+fi
+
+cat >>.profile.d/00_jenkins_preconfig.sh <<'EOF_OUTER'
 # Rename our Groovy init script so that Jenkins runs it when it starts.  Once run, the script will
 # delete itself. We do it this way to avoid confusing Git
 [ -f _init.groovy ] && cp _init.groovy init.groovy

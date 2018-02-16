@@ -275,14 +275,23 @@ else
 	cd - 2>&1 >/dev/null
 
 	INFO 'Creating httpd reverse proxy setup'
-	cat >"/etc/httpd/conf.d/$JENKINS_APPNAME-proxy.conf" <<EOF
-	ProxyPass         "/" "http://127.0.0.1:8080/"
-	ProxyPassReverse  "/" "http://127.0.0.1:8080/"
+	cat >"/etc/httpd/conf.d/$JENKINS_APPNAME-proxy.conf" <<'EOF'
+
+RewriteEngine On
+
+RewriteCond %{HTTPS} !=on
+
+RewriteRule ^/(.*)$ https://%{SERVER_NAME}/$1 [R,L]
+
+ProxyPass         "/" "http://127.0.0.1:8080/"
+ProxyPassReverse  "/" "http://127.0.0.1:8080/"
 EOF
 
 	if [ -n "$FIX_FIREWALL" ]; then
-		INFO 'Permitting access to HTTP'
-		firewall-cmd -q --permanent --add-service=http
+		INFO 'Permitting access to HTTPS'
+		firewall-cmd -q --permanent --add-service=https
+		INFO 'Removing access to HTTP'
+		firewall-cmd -q --permanent --remove-service=http
 
 		INFO 'Reloading firewall'
 		firewall-cmd -q --reload

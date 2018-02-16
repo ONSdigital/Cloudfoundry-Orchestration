@@ -30,6 +30,16 @@ fi
 . "$COMMON_JENKINS_DEPLOY_SH"
 ###########################################################
 
+
+install_packages(){
+	for _i in $@; do
+		if ! rpm --quiet -q "$_i"; then
+			INFO ". installing $_i"
+			yum install -q -y "$_i"
+		fi
+	done
+}
+
 ###########################################################
 #
 # Local install specific default values
@@ -46,7 +56,8 @@ LOG_ROTATE_COUNT="${LOG_ROTATE_COUNT:-10}"
 LOG_ROTATE_SIZE="${LOG_ROTATE_SIZE:-10m}"
 LOG_ROTATE_FREQUENCY="${LOG_ROTATE_FREQUENCY:-daily}"
 # Fonts & fontconfig are required for Java/AWT
-BASE_PACKAGES='git java-1.8.0-openjdk-headless httpd dejavu-sans-fonts fontconfig unzip'
+BASE_PACKAGES='git java-1.8.0-openjdk-headless dejavu-sans-fonts fontconfig unzip'
+MASTER_PACKAGES='httpd mod_ssl'
 SSH_KEYSCAN_TIMEOUT="${SSH_KEYSCAN_TIMEOUT:-10}"
 #
 CONFIGURE_SLAVE_CONNECTIVITY=1
@@ -144,7 +155,7 @@ for i in `seq 1 $#`; do
 			;;
 		-P|--plugins)
 			# Comma separated list of URLs that contain the plugins to install
-			PLUGINS="$DEFAULT_PLUGINS,$2"
+			[ -z "$PLUGINS" ] && PLUGINS="$2" || PLUGINS="$PLUGINS,$2"
 			shift 2
 			;;
 		-K|--ssh-keyscan-host)
@@ -182,12 +193,7 @@ INFO "Creating $DEPLOYMENT_DIR layout"
 mkdir -p "$DEPLOYMENT_DIR"/{bin,config,.ssh}
 
 INFO 'Checking if all required packages are installed - this may take a while'
-for _i in $BASE_PACKAGES; do
-	if ! rpm --quiet -q "$_i"; then
-		INFO ". installing $_i"
-		yum install -q -y "$_i"
-	fi
-done
+install_packages $BASE_PACKAGES
 
 if [ -n "$FIX_SELINUX" ]; then
 	# Check if we have SELinux enabled
@@ -208,9 +214,6 @@ if [ -n "$JENKINS_MASTER_URL" ]; then
 	JENKINS_APPNAME="$JENKINS_APPNAME-${JENKINS_SLAVE_NAME:-slave}"
 	JENKINS_AGENT_JAR="$DEPLOYMENT_DIR/bin/agent.jar"
 	
-	INFO 'Downloading Jenkins agent.jar'
-	curl -Lo "$JENKINS_AGENT_JAR" "$JENKINS_MASTER_URL/jnlpJars/agent.jar"
-
 	mkdir "$DEPLOYMENT_DIR/slave"
 
 	INFO 'Determining JNLP port'
@@ -218,6 +221,9 @@ if [ -n "$JENKINS_MASTER_URL" ]; then
 
 	[ -z "$JENKINS_JNLP_PORT" ] && FATAL 'Unable to determine Jenkins JNLP port'
 else
+	INFO 'Checking if further packages are installed - this may take a while'
+	install_packages $MASTER_PACKAGES
+
 	INFO 'Deploying Jenkins master'
 
 	# We have to jump through a few hoops as the Git repository URL(s) used during deployment may not be the same as the ones that will be used once we are deployed
@@ -254,7 +260,7 @@ else
 	cd "$DEPLOYMENT_DIR/jenkins_home/plugins"
 
 	# Download and install any required Jenkins plugins
-	download_plugins ${PLUGINS:-$DEFAULT_PLUGINS}
+	download_plugins $PLUGINS
 
 	cd "$DEPLOYMENT_DIR"
 
@@ -385,6 +391,9 @@ EOF
 else
 	# We are a slave
 	cat >>"$DEPLOYMENT_DIR/bin/$JENKINS_APPNAME-startup.sh" <<EOF
+# Update the Jenkins agent.jar
+curl -Lo "$JENKINS_AGENT_JAR" "$JENKINS_MASTER_URL/jnlpJars/agent.jar"
+
 # Jenkins slave
 java -Djava.awt.headless=true -jar '$JENKINS_AGENT_JAR' -workDir '$DEPLOYMENT_DIR/slave' -jnlpUrl '$JENKINS_MASTER_URL/computer/$JENKINS_SLAVE_NAME/slave-agent.jnlp' -secret '$JENKINS_SLAVE_SECRET' >'/var/log/$JENKINS_APPNAME/$JENKINS_APPNAME.log' 2>&1
 EOF

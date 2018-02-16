@@ -113,7 +113,7 @@ for i in `seq 1 $#`; do
 			;;
 		-P|--plugins)
 			# Comma separated list of URLs that contain the plugins to install
-			PLUGINS="$2"
+			[ -z "$PLUGINS" ] && PLUGINS="$2" || PLUGINS="$PLUGINS,$2"
 			shift 2
 			;;
 		-X|--disable-csp-security)
@@ -242,7 +242,7 @@ INFO 'Installing initial plugin(s)'
 cd jenkins_home/plugins
 
 # Download and install any required Jenkins plugins
-download_plugins ${PLUGINS:-$DEFAULT_PLUGINS}
+download_plugins $PLUGINS
 
 cd ../..
 

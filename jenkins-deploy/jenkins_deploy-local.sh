@@ -64,6 +64,9 @@ CONFIGURE_SLAVE_CONNECTIVITY=1
 FIX_FIREWALL=1
 FIX_SELINUX=1
 
+# Default to running Curl insecurely
+CURL_INSECURE_AGENT_DOWNLOAD_OPT='-k'
+
 # In seconds
 JENKINS_JNLP_CHECK_DELAY="${JENKINS_JNLP_CHECK_DELAY:-5}"
 JENKINS_JNLP_CHECK_ATTEMPTS="${JENKINS_JNLP_CHECK_ATTEMPTS:-100}"
@@ -137,6 +140,20 @@ for i in `seq 1 $#`; do
 			# Do not configure SELinux
 			unset FIX_SELINUX
 			shift
+			;;
+		--secure-curl-agent-download)
+			# Do not ignore server certificate
+			unset CURL_INSECURE_AGENT_DOWNLOAD_OPT
+			;;
+		--https-certificate)
+			# SSL certificate file for HTTPS
+			SSL_CERTIFICATE="$2"
+			shift 2
+			;;
+		--https-key)
+			# SSL key file for HTTPS
+			SSL_KEY="$2"
+			shift 2
 			;;
 		--jenkins-base-install-dir)
 			# Base directory where we create the directory to hold Jenkins 
@@ -221,6 +238,11 @@ if [ -n "$JENKINS_MASTER_URL" ]; then
 
 	[ -z "$JENKINS_JNLP_PORT" ] && FATAL 'Unable to determine Jenkins JNLP port'
 else
+	[ -n "$SSL_CERTIFICATE" -a ! -f "$SSL_CERTIFICATE" ] && FATAL "SSL certificate does not exist: $SSL_CERTIFICATE"
+	[ -n "$SSL_KEY" -a ! -f "$SSL_KEY" ] && FATAL "SSL key does not exist: $SSL_KEY"
+
+	[ -z "$SSL_CERTIFICATE" -o -z "$SSL_KEY" ] && FATAL "Either SSL certificate ($SSL_CERTIFICATE) or key ($SSL_KEY) missing" || INSTALL_SSL_PAIR=1
+
 	INFO 'Checking if further packages are installed - this may take a while'
 	install_packages $MASTER_PACKAGES
 
@@ -275,6 +297,7 @@ else
 	cd - 2>&1 >/dev/null
 
 	INFO 'Creating httpd reverse proxy setup'
+	INFO 'Configuring redirect from http:// to https://'
 	cat >"/etc/httpd/conf.d/$JENKINS_APPNAME-proxy.conf" <<'EOF'
 
 RewriteEngine On
@@ -287,11 +310,19 @@ ProxyPass         "/" "http://127.0.0.1:8080/"
 ProxyPassReverse  "/" "http://127.0.0.1:8080/"
 EOF
 
+	if [ -n "$INSTALL_SSL_PAIR" ]; then
+		INFO 'Installing SSL keypair'
+		# We use 'cat' to avoid having to discover and restore the SELinux context
+		cat "$SSL_CERTIFICATE" >/etc/pki/tls/certs/localhost.crt
+		cat "$SSL_KEY" >/etc/pki/tls/private/localhost.key
+	fi
+
+
 	if [ -n "$FIX_FIREWALL" ]; then
-		INFO 'Permitting access to HTTPS'
-		firewall-cmd -q --permanent --add-service=https
+		INFO 'Permitting access to HTTP & HTTPS'
+		firewall-cmd -q --permanent --add-service=http,https
 		INFO 'Removing access to HTTP'
-		firewall-cmd -q --permanent --remove-service=http
+		firewall-cmd -q --permanent --add-service=http
 
 		INFO 'Reloading firewall'
 		firewall-cmd -q --reload
@@ -401,7 +432,7 @@ else
 	# We are a slave
 	cat >>"$DEPLOYMENT_DIR/bin/$JENKINS_APPNAME-startup.sh" <<EOF
 # Update the Jenkins agent.jar
-curl -Lo "$JENKINS_AGENT_JAR" "$JENKINS_MASTER_URL/jnlpJars/agent.jar"
+curl $CURL_INSECURE_AGENT_DOWNLOAD_OPT -Lo "$JENKINS_AGENT_JAR" "$JENKINS_MASTER_URL/jnlpJars/agent.jar"
 
 # Jenkins slave
 java -Djava.awt.headless=true -jar '$JENKINS_AGENT_JAR' -workDir '$DEPLOYMENT_DIR/slave' -jnlpUrl '$JENKINS_MASTER_URL/computer/$JENKINS_SLAVE_NAME/slave-agent.jnlp' -secret '$JENKINS_SLAVE_SECRET' >'/var/log/$JENKINS_APPNAME/$JENKINS_APPNAME.log' 2>&1

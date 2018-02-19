@@ -64,9 +64,6 @@ CONFIGURE_SLAVE_CONNECTIVITY=1
 FIX_FIREWALL=1
 FIX_SELINUX=1
 
-# Default to running Curl insecurely
-CURL_INSECURE_AGENT_DOWNLOAD_OPT='-k'
-
 # In seconds
 JENKINS_JNLP_CHECK_DELAY="${JENKINS_JNLP_CHECK_DELAY:-5}"
 JENKINS_JNLP_CHECK_ATTEMPTS="${JENKINS_JNLP_CHECK_ATTEMPTS:-100}"
@@ -144,6 +141,9 @@ for i in `seq 1 $#`; do
 		--secure-curl-agent-download)
 			# Do not ignore server certificate
 			unset CURL_INSECURE_AGENT_DOWNLOAD_OPT
+			# Default to running Curl insecurely
+			CURL_INSECURE_AGENT_DOWNLOAD_OPT='-k'
+			shift
 			;;
 		--https-certificate)
 			# SSL certificate file for HTTPS
@@ -241,7 +241,7 @@ else
 	[ -n "$SSL_CERTIFICATE" -a ! -f "$SSL_CERTIFICATE" ] && FATAL "SSL certificate does not exist: $SSL_CERTIFICATE"
 	[ -n "$SSL_KEY" -a ! -f "$SSL_KEY" ] && FATAL "SSL key does not exist: $SSL_KEY"
 
-	[ -z "$SSL_CERTIFICATE" -o -z "$SSL_KEY" ] && FATAL "Either SSL certificate ($SSL_CERTIFICATE) or key ($SSL_KEY) missing" || INSTALL_SSL_PAIR=1
+	[ -n "$SSL_CERTIFICATE" -a -n "$SSL_KEY" ] && INSTALL_SSL_PAIR=1
 
 	INFO 'Checking if further packages are installed - this may take a while'
 	install_packages $MASTER_PACKAGES
@@ -320,9 +320,7 @@ EOF
 
 	if [ -n "$FIX_FIREWALL" ]; then
 		INFO 'Permitting access to HTTP & HTTPS'
-		firewall-cmd -q --permanent --add-service=http,https
-		INFO 'Removing access to HTTP'
-		firewall-cmd -q --permanent --add-service=http
+		firewall-cmd -q --permanent --add-service=http --add-service=https
 
 		INFO 'Reloading firewall'
 		firewall-cmd -q --reload

@@ -90,3 +90,9 @@ fi
 # Ensure we have a sensible umask
 umask 022
 #############################################
+
+#############################################
+if [ -n "$CLOUDFOUNDRY_DEPLOYMENT" -a -d "$CLOUDFOUNDRY_DEPLOYMENT" ]; then
+	cd "$CLOUDFOUNDRY_DEPLOYMENT"
+fi
+

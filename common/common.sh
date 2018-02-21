@@ -5,6 +5,7 @@
 # Variables:
 #	DEFAULT_BRANCH=Default Git branch
 #	DEFAULT_ORIGIN=Default Git origin
+#	CLOUDFOUNDRY_DEPLOYMENT=Cloudfoundry deployment folder
 set -e
 
 #############################################

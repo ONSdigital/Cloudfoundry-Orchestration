@@ -67,15 +67,18 @@ sed </dev/null 2>&1 | grep -q GNU && SED_OPT='-r' || SED_OPT='-E'
 # Configure colour console - if possible
 COLOURS="`tput colors`"
 
+# Check if we support colours
+[ -n "$TERM" ] && COLOURS="`tput colors`"
+
 if [ 0$COLOURS -ge 8 ]; then
-	# Red
-	FATAL_COLOUR='\e[1;31m'
-	# Yellow
-	WARN_COLOUR='\e[1;33m'
-	# Cyan
-	INFO_COLOUR='\e[1;36m'
-	# None
-	NONE_COLOUR='\e[0m'
+	FATAL_COLOUR="`tput setaf 1`"
+	INFO_COLOUR="`tput setaf 2`"
+	WARN_COLOUR="`tput setaf 3`"
+	DEBUG_COLOR="`tput setaf 4`"
+	# Jenkins/ansi-color adds '(B' when highlighting - this may now be fixed
+	# https://issues.jenkins-ci.org/browse/JENKINS-24387
+	#NORMAL_COLOUR="\e[0m"
+	NORMAL_COLOUR="`tput sgr0`"
 fi
 #############################################
 

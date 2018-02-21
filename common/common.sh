@@ -10,31 +10,23 @@ set -e
 
 #############################################
 FATAL(){
-	# We use printf as this will handle the escape sequences
-	# echo -ne is a {Linux,Bash}-ish-ism
-	printf "%b" $FATAL_COLOUR
-	cat <<EOF
-FATAL $@
+	cat >&2 <<EOF
+${FATAL_COLOR}FATAL $@$NORMAL_COLOUR
 EOF
-	printf "%b" $NONE_COLOUR
 
 	exit 1
 }
 
 WARN(){
-	printf "%b" "$WARN_COLOUR"
-	cat <<EOF
-WARN $@
+	cat >&2 <<EOF
+${WARN_COLOUR}WARN $@$NORMAL_COLOUR
 EOF
-	printf "%b" "$NONE_COLOUR"
 }
 
 INFO(){
-	printf "%b" "$INFO_COLOUR"
-	cat <<EOF
-INFO $@
+	cat >&2 <<EOF
+${INFO_COLOUR}INFO $@$NORMAL_COLOUR
 EOF
-	printf "%b" "$NONE_COLOUR"
 }
 
 branch_to_name(){

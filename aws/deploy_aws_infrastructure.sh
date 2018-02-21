@@ -52,8 +52,10 @@ elif [ -n "$DEPLOYMENT_NAME" ]; then
 		DEPLOYMENT_NAME="$NEW_DEPLOYMENT_NAME"
 	fi
 
-else
+elif [ -n "$GIT_BRANCH" ]; then
 	DEPLOYMENT_NAME="`branch_to_name "$GIT_BRANCH"`"
+else
+	FATAL 'DEPLOYMENT_NAME and GIT_BRANCH have not been set'
 fi
 
 if [ x"$CREATE_DEPLOYMENT" = x'false' -a -d deployment ]; then

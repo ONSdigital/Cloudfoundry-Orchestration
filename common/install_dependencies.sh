@@ -22,13 +22,19 @@ fi
 ###########################################################
 
 if [ -f Scripts/bin/install_deps.sh ]; then
-	SCRIPT=Scripts/bin/install_deps.sh
+	# Do nothing, things are in the right place
+	:
 
-elif [ -f vendor/Scripts/bin/install_deps.sh ]; then
-	SCRIPT=vendor/Scripts/bin/install_deps.sh
+elif [ ! -d Scripts ]; then
+	# We are being run from a branch that hasn't been deployed, so we need to simulate some of the
+	# layout
+	cp -rp vendor/Scripts .
+
+elif [ -d Scripts ]; then
+	FATAL 'Existing Scripts directory exists, but does not contain install_deps.sh'
 
 else
-	FATAL 'Unable to find install_deps.sh'
+	FATAL 'Unable to find install_dep.sh'
 fi
 
-$SCRIPT
+Scripts/bin/install_deps.sh

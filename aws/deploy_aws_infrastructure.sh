@@ -89,9 +89,6 @@ else
 
 				# We don't want to copy over any of the .git files otherwise we'll confuse the repository contained at the top level
 				[ -e "$dst/$_r/.git" ] && rm -rf "$dst/$_r/.git"
-
-				git add "$dst/$i"
-
 			fi
 		done
 
@@ -102,8 +99,6 @@ else
 			INFO ". installing $_s"
 			cp "Scripts/bin/$_s" bin
 		done
-
-		git add bin
 	fi
 
 	# Create the AWS infrastructure
@@ -112,9 +107,13 @@ else
 	ACTION='Creating'
 fi
 
+INFO 'Adding all new files/directories to Git'
+git add --all
+
 INFO 'Updating Git repository'
 git commit -am "$DEPLOYMENT_COMMIT_MESSAGE" --allow-empty
 
+INFO 'Pushing Git repository'
 git push --all
 
 if [ x"$FAILED" = x"true" ]; then

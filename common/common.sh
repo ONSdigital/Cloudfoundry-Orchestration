@@ -99,9 +99,6 @@ if [ ! -d Scripts ]; then
 	# We are being run from a branch that hasn't been deployed, so we need to simulate some of the
 	# layout. If we don't do this we get the work/bin/ directory created under vendor/
 	cp -rp vendor/Scripts .
-
-else
-	FATAL 'Unable to find install_dep.sh'
 fi
 #############################################
 

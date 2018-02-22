@@ -21,4 +21,8 @@ fi
 . "$COMMON_SH"
 ###########################################################
 
-BUILDPACK="$1"
+BUILDPACK_NAME="$1"
+BUILDPACK_DIR="$2"
+
+# Error checking is done in the underlying script
+./Scripts/bin/build_offline_buildpack.sh "$BUILDPACK_NAME" "$BUILDPACK_DIR"

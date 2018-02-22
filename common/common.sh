@@ -9,6 +9,11 @@
 set -e
 
 #############################################
+# Add ability to debug commands
+[ -n "$DEBUG" -a x"$DEBUG" != x"false" ] && set -x
+#############################################
+
+#############################################
 FATAL(){
 	cat >&2 <<EOF
 ${FATAL_COLOR}FATAL $@$NORMAL_COLOUR

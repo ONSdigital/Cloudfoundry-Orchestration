@@ -24,8 +24,5 @@ fi
 BUILDPACK_NAME="$1"
 BUILDPACK_DIR="$2"
 
-pwd
-find .
-
 # Error checking is done in the underlying script
 ./Scripts/bin/build_offline_buildpack.sh "$BUILDPACK_NAME" "$BUILDPACK_DIR"

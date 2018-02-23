@@ -34,73 +34,75 @@ configure_ssh(){
 
 	[ -z "$user" -o -z "$host" ] && FATAL 'Either host or user missing'
 
-	local jenkins_home="`eval echo ~$JENKINS_USER`"
+	for user in root $JENKINS_USER; do
+		local jenkins_home="`eval echo ~$user`"
 
-	if [ -f $jenkins_home/.ssh/config ]; then
-		awk -v host="$host" -v user="$user" 'BEGIN{
-				rc=2
-			}
-			{
+		if [ -f $jenkins_home/.ssh/config ]; then
+			awk -v host="$host" -v user="$user" 'BEGIN{
+					rc=2
+				}
+				{
+					if($1 == "Host"){
+						if($2 == host){
+							host_match=1
+						} else {
+							host_match=0
+						}
+					} else if(host_match){
+						if($2 == user)
+							rc=0
+
+							exit
+
+						if($2 != user)
+							rc=1
+
+							exit
+					}
+				}END{
+					exit rc
+				}' $jenkins_home/.ssh/config || rc=$?
+		else
+			rc=2
+		fi
+
+		if [ -d $jenkins_home/.ssh ]; then
+			mkdir -p 0600 $jenkins_home/.ssh
+
+			chown $user $jenkins_home/.ssh
+		fi
+
+		if [ 0$rc -eq 1 ]; then
+			local temp_config="`mktemp $jenkins_home/.ssh/config.XXXX`"
+
+			# Existing host-user config
+			awk -v host="$host" -v user="$user" '{
 				if($1 == "Host"){
 					if($2 == host){
 						host_match=1
 					} else {
 						host_match=0
 					}
-				} else if(host_match){
-					if($2 == user)
-						rc=0
-
-						exit
-
-					if($2 != user)
-						rc=1
-
-						exit
-				}
-			}END{
-				exit rc
-			}' $jenkins_home/.ssh/config || rc=$?
-	else
-		rc=2
-	fi
-
-	if [ -d $jenkins_home/.ssh ]; then
-		mkdir -p 0600 $jenkins_home/.ssh
-
-		chown $JENKINS_USER:$JENKINS_GROUP $jenkins_home/.ssh
-	fi
-
-	if [ 0$rc -eq 1 ]; then
-		local temp_config="`mktemp $jenkins_home/.ssh/config.XXXX`"
-
-		# Existing host-user config
-		awk -v host="$host" -v user="$user" '{
-			if($1 == "Host"){
-				if($2 == host){
-					host_match=1
+				} else if(host_match && $1 == "User"){
+					printf("	User %s\n",user)
 				} else {
-					host_match=0
+					print $0
 				}
-			} else if(host_match && $1 == "User"){
-				printf("	User %s\n",user)
-			} else {
-				print $0
-			}
-		}' $jenkins_home/.ssh/config >$temp_config
+			}' $jenkins_home/.ssh/config >$temp_config
 
-		mv $temp_config $jenkins_home/.ssh/config
-		
-		chown $JENKINS_USER:$JENKINS_GROUP $jenkins_home/.ssh/config
+			mv $temp_config $jenkins_home/.ssh/config
 
-	elif [ 0$rc -eq 2 ]; then
-		# No existing host-user config
-		cat >>$jenkins_home/.ssh/config <<EOF
+			chown $user $jenkins_home/.ssh/config
+
+		elif [ 0$rc -eq 2 ]; then
+			# No existing host-user config
+			cat >>$jenkins_home/.ssh/config <<EOF
 Host $host
 	User $user
 EOF
 
-	fi
+		fi
+	done
 }
 
 download_jenkins_war(){

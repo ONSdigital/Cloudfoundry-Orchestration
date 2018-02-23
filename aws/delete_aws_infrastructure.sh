@@ -39,6 +39,6 @@ if [ x"$DELETE_GIT_BRANCH" = x'true' ]; then
 	INFO 'Deleting Git branch'
 	git checkout master
 	git branch -D "$DEPLOYMENT_NAME"
-	git push origin "$DEPLOYMENT_NAME"
+	git push origin ":$DEPLOYMENT_NAME"
 fi
 

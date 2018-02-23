@@ -27,6 +27,10 @@ fi
 . "$CF_PREAMBLE"
 ###########################################################
 
+if [ -z "$SKIP_CF_SETUP" -o x"$SKIP_CF_SETUP" != x'true' ] && [ ! -f "deployment/$DEPLOYMENT_NAME/cf-credentials-admin.sh" ] && [ -z "$ADMIN_EMAIL_ADDRESS" ]; then
+        FATAL 'No admin email address provided'
+fi
+
 if [ -z "$GIT_COMMIT_MESSAGE" ]; then
 	[ x"$GIT_BRANCH" = x'origin/master' ] && GIT_COMMIT_MESSAGE="New deployment $DEPLOYMENT_NAME" || GIT_COMMIT_MESSAGE="Updated deployment $DEPLOYMENT_NAME"
 fi

@@ -33,11 +33,11 @@ GIT_BRANCH="`git branch | awk '/^\* +/{print $NF}'`"
 
 [ -z "$GIT_BRANCH" ] && FATAL 'Unable to determine Git branch'
 
+[ x"$GIT_BRANCH" = x'origin/master' ] && FATAL 'You have not selected a deployment branch'
+
 DEPLOYMENT_NAME="`branch_to_name "$GIT_BRANCH"`"
 
-[ -z "$GIT_BRANCH" ] && FATAL 'No branch provided'
-
-[ x"$GIT_BRANCH" = x'origin/master' ] && FATAL 'You have not selected a deployment branch'
+[ -z "$DEPLOYMENT_NAME" ] && FATAL "Unable to determine DEPLOYMENT_NAME from $GIT_BRANCH"
 
 # For AWS these are generated automatically
 # For VMware these are hand crafted

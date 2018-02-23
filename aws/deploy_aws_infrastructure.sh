@@ -85,7 +85,7 @@ else
 
 				[ -d "$_r" ] || mkdir -p "$dst"
 
-				tar --exclude .git -cf - -C "vendor/$_r" | tar -xf - -C "$dst"
+				tar --exclude .git -cf - -C "vendor/$_r" . | tar -xf - -C "$dst"
 			fi
 		done
 

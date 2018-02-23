@@ -58,7 +58,7 @@ install_scripts(){
 DEFAULT_ORIGIN="${DEFAULT_ORIGIN:-origin}"
 DEFAULT_BRANCH="${DEFAULT_BRANCH:-master}"
 
-if ! git config --global push.default >/dev/null 2>&1; then
+if which git >/dev/null 2>&1 && ! git config --global push.default >/dev/null 2>&1; then
 	INFO 'Setting default Git push method'
 	git config --global push.default simple
 fi

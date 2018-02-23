@@ -33,7 +33,7 @@ DEPLOYMENT_NAME="`branch_to_name "$GIT_BRANCH"`"
 
 [ x"$DEPLOYMENT_NAME" = x'master' ] && FATAL 'Foot shooting protection activated, refusing to delete master branch'
 
-#./Scripts/bin/delete_aws_cloudformation.sh "$DEPLOYMENT_NAME"
+./Scripts/bin/delete_aws_cloudformation.sh "$DEPLOYMENT_NAME"
 
 if [ x"$DELETE_GIT_BRANCH" = x'true' ]; then
 	INFO 'Deleting Git branch'

@@ -123,6 +123,16 @@ for i in `seq 1 $#`; do
 			JENKINS_SCRIPTS_REPO="$2"
 			shift 2
 			;;
+		--ssh-host-config)
+			# Used to configure ~/.ssh/config to use a specific SSH username to access the host
+			SSH_HOST_CONFIG="$2"
+			shift 2
+			;;
+		--ssh-user-config)
+			# Used to configure ~/.ssh/config to use a specific SSH username to access the host
+			SSH_USER_CONFIG="$2"
+			shift 2
+			;;
 		--no-auto-plugin-install)
 			# Do not automatically install any plugins - use the --plugins option to add plugins, or add the plugins
 			# manually post-install
@@ -222,6 +232,11 @@ INFO "Checking if we need to add the '$JENKINS_USER' user"
 if ! id $JENKINS_USER 2>&1 >/dev/null; then
 	INFO "Adding $JENKINS_USER"
 	useradd -d "$DEPLOYMENT_DIR" -r -s /sbin/nologin "$JENKINS_USER"
+fi
+
+if [ -n "$SSH_HOST_CONFIG" -a "$SSH_USER_CONFIG" ]; then
+	INFO "Setting up SSH to connect to $SSH_HOST_CONFIG as $SSH_USER_CONFIG"
+	configure_ssh "$SSH_HOST_CONFIG" "$SSH_USER_CONFIG"
 fi
 
 cd "$DEPLOYMENT_DIR"

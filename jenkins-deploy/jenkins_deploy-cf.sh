@@ -91,6 +91,16 @@ for i in `seq 1 $#`; do
 			JENKINS_SCRIPTS_REPO="$2"
 			shift 2
 			;;
+		--ssh-user-config)
+			# Used to configure ~/.ssh/config to use a specific SSH username to access the host
+			SSH_USER_CONFIG="$2"
+			shift 2
+			;;
+		--no-auto-plugin-install)
+			# Do not automatically install any plugins - use the --plugins option to add plugins, or add the plugins
+			# manually post-install
+			NO_PLUGIN_INSTALL=1
+			;;
 		--no-auto-plugin-install)
 			# Do not automatically install any plugins - use the --plugins option to add plugins, or add the plugins
 			# manually post-install
@@ -367,6 +377,28 @@ cd -
 
 # Configure SSH
 mv id_rsa id_rsa.pub $REAL_HOME/.ssh/
+EOF_OUTER
+
+
+if [ -n "$SSH_HOST_CONFIG" -a "$SSH_USER_CONFIG" ]; then
+	INFO "Setting up SSH to connect to $SSH_HOST_CONFIG as $SSH_USER_CONFIG"
+	cat >>.profile.d/00_jenkins_preconfig.sh <<EOF_OUTER
+
+	if [ ! -f $REAL_HOME/.ssh/config ]; then
+		cat >$REAL_HOME/.ssh/config <<EOF_INNER
+Host $SSH_HOST_CONFIG
+	User $SSH_USER_CONFIG
+EOF_INNER
+	fi
+EOF_OUTER
+fi
+
+cat >>.profile.d/00_jenkins_preconfig.sh <<'EOF_OUTER'
+if [ -n "$SSH_HOST_CONFIG" -a "$SSH_USER_CONFIG" ]; then
+	INFO "Setting up SSH to connect to $SSH_HOST_CONFIG as $SSH_USER_CONFIG"
+
+	configure_ssh "$SSH_HOST_CONFIG" "$SSH_USER_CONFIG"
+fi
 
 # Create the ~/.ssh/known_hosts
 cat known_hosts >>$REAL_HOME/.ssh/known_hosts

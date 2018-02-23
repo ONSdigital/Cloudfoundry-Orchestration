@@ -85,10 +85,7 @@ else
 
 				[ -d "$_r" ] || mkdir -p "$dst"
 
-				cp -rp "vendor/$_r" "$dst"
-
-				# We don't want to copy over any of the .git files otherwise we'll confuse the repository contained at the top level
-				[ -e "$dst/$_r/.git" ] && rm -rf "$dst/$_r/.git"
+				tar --exclude .git -cf - -C "vendor/$_r" | tar -xf - -C "$dst"
 			fi
 		done
 
@@ -102,7 +99,7 @@ else
 	fi
 
 	# Create the AWS infrastructure
-	"$CF_SCRIPTS_DIR/bin/create_aws_cloudformation.sh" "$DEPLOYMENT_NAME" || FAILED='true'
+	#"$CF_SCRIPTS_DIR/bin/create_aws_cloudformation.sh" "$DEPLOYMENT_NAME" || FAILED='true'
 
 	ACTION='Creating'
 fi

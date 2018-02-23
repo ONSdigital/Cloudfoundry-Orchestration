@@ -42,6 +42,17 @@ branch_to_name(){
 	basename "$branch"
 }
 
+install_scripts(){
+	# Install Scripts, if we don't already have things in the right place
+	if [ ! -d Scripts ]; then
+		# We are being run from a branch that hasn't been deployed, so we need to simulate some of the
+		# layout. If we don't do this we get the work/bin/ directory created under vendor/
+		cp -rp vendor/Scripts .
+	fi
+}
+#############################################
+
+
 #############################################
 # Git config
 DEFAULT_ORIGIN="${DEFAULT_ORIGIN:-origin}"
@@ -92,13 +103,4 @@ fi
 umask 022
 #############################################
 
-
-#############################################
-# Install Scripts, if we don't already have things in the right place
-if [ ! -d Scripts ]; then
-	# We are being run from a branch that hasn't been deployed, so we need to simulate some of the
-	# layout. If we don't do this we get the work/bin/ directory created under vendor/
-	cp -rp vendor/Scripts .
-fi
-#############################################
 

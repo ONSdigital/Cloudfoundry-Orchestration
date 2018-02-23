@@ -24,6 +24,8 @@ fi
 "$CF_PREAMBLE"
 ###########################################################
 
+install_scripts
+
 [ -z "$S3_BACKUP_BUCKET" ] && FATAL 'No S3 bucket name provided'
 
 ./Scripts/bin/backup_cloudfoundry-s3.sh "$DEPLOYMENT_NAME" restore "s3://$S3_BACKUP_BUCKET/$DEPLOYMENT_NAME/s3_backups"

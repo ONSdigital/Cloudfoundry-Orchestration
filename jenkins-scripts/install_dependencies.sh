@@ -21,4 +21,6 @@ fi
 . "$COMMON_SH"
 ###########################################################
 
+install_scripts
+
 ./Scripts/bin/install_deps.sh

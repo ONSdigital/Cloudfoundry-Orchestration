@@ -85,7 +85,7 @@ else
 
 				[ -d "$_r" ] || mkdir -p "$dst"
 
-				tar --exclude .git -cf - -C "vendor/$_r" . | tar -xf - -C "$dst"
+				tar --exclude .git -cf - -C "vendor/$_r" . | tar -xf - -C "$dst/$_r"
 			fi
 		done
 
@@ -103,6 +103,8 @@ else
 
 	ACTION='Creating'
 fi
+
+pwd
 
 INFO 'Adding all new files/directories to Git'
 git add --all

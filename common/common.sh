@@ -58,19 +58,21 @@ install_scripts(){
 DEFAULT_ORIGIN="${DEFAULT_ORIGIN:-origin}"
 DEFAULT_BRANCH="${DEFAULT_BRANCH:-master}"
 
-if which git >/dev/null 2>&1 && ! git config --global push.default >/dev/null 2>&1; then
-	INFO 'Setting default Git push method'
-	git config --global push.default simple
-fi
+if which git >/dev/null 2>&1; then
+	if ! git config --global push.default >/dev/null 2>&1; then
+		INFO 'Setting default Git push method'
+		git config --global push.default simple
+	fi
 
-if ! git config --global user.email >/dev/null 2>&1; then
-	INFO 'Setting default Git user email'
-	git config --global user.email "${USER:-jenkins}@${HOSTNAME:-localhost}"
-fi
+	if ! git config --global user.email >/dev/null 2>&1; then
+		INFO 'Setting default Git user email'
+		git config --global user.email "${USER:-jenkins}@${HOSTNAME:-localhost}"
+	fi
 
-if ! git config --global user.name >/dev/null 2>&1; then
-	INFO 'Setting default Git user name'
-	git config --global user.name "${USER:-jenkins}"
+	if ! git config --global user.name >/dev/null 2>&1; then
+		INFO 'Setting default Git user name'
+		git config --global user.name "${USER:-jenkins}"
+	fi
 fi
 #############################################
 

@@ -80,12 +80,12 @@ else
 		INFO 'Installing vendored repositories'
 		for _r in `ls vendor/`; do
 			if [ ! -d "$_r" ]; then
-				echo "$_r" | grep -Eq -- '-release' && dst='releases' || dst='.'
-				INFO ". installing $_r to $dst/"
+				echo "$_r" | grep -Eq -- '-release' && dst="releases/$_r" || dst="./$_r"
+				INFO ". installing $_r to $dst"
 
 				[ -d "$_r" ] || mkdir -p "$dst"
 
-				tar --exclude .git -cf - -C "vendor/$_r" . | tar -xf - -C "$dst/$_r"
+				tar --exclude .git -cf - -C "vendor/$_r" . | tar -xf - -C "$dst"
 			fi
 		done
 

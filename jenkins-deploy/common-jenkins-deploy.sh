@@ -34,7 +34,9 @@ configure_ssh(){
 
 	[ -z "$user" -o -z "$host" ] && FATAL 'Either host or user missing'
 
-	if [ -f ~$JENKINS_USER/.ssh/config ]; then
+	local jenkins_home="`eval echo ~$JENKINS_USER`"
+
+	if [ -f $jenkins_home/.ssh/config ]; then
 		awk -v host="$host" -v user="$user" 'BEGIN{
 				rc=2
 			}
@@ -58,19 +60,19 @@ configure_ssh(){
 				}
 			}END{
 				exit rc
-			}' ~$JENKINS_USER/.ssh/config || rc=$?
+			}' $jenkins_home/.ssh/config || rc=$?
 	else
 		rc=2
 	fi
 
-	if [ -d ~$JENKINS_USER/.ssh ]; then
-		mkdir -p 0600 ~$JENKINS_USER/.ssh
+	if [ -d $jenkins_home/.ssh ]; then
+		mkdir -p 0600 $jenkins_home/.ssh
 
-		chown $JENKINS_USER:$JENKINS_GROUP ~$JENKINS_USER/.ssh
+		chown $JENKINS_USER:$JENKINS_GROUP $jenkins_home/.ssh
 	fi
 
 	if [ 0$rc -eq 1 ]; then
-		local temp_config="`mktemp ~$JENKINS_USER/.ssh/config.XXXX`"
+		local temp_config="`mktemp $jenkins_home/.ssh/config.XXXX`"
 
 		# Existing host-user config
 		awk -v host="$host" -v user="$user" '{
@@ -85,15 +87,15 @@ configure_ssh(){
 			} else {
 				print $0
 			}
-		}' ~$JENKINS_USER/.ssh/config >$temp_config
+		}' $jenkins_home/.ssh/config >$temp_config
 
-		mv $temp_config ~$JENKINS_USER/.ssh/config
+		mv $temp_config $jenkins_home/.ssh/config
 		
-		chown $JENKINS_USER:$JENKINS_GROUP ~$JENKINS_USER/.ssh/config
+		chown $JENKINS_USER:$JENKINS_GROUP $jenkins_home/.ssh/config
 
 	elif [ 0$rc -eq 2 ]; then
 		# No existing host-user config
-		cat >>~$JENKINS_USER/.ssh/config <<EOF
+		cat >>$jenkins_home/.ssh/config <<EOF
 Host $host
 	User $user
 EOF

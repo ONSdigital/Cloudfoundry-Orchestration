@@ -225,11 +225,11 @@ install_packages $BASE_PACKAGES
 if [ -n "$FIX_SELINUX" ]; then
 	# Check if we have SELinux enabled
 	INFO 'Determining SELinux status'
-	sestatus 2>&1 >/dev/null && SELINUX_ENABLED=true
+	sestatus >/dev/null 2>&1 && SELINUX_ENABLED=true
 fi
 
 INFO "Checking if we need to add the '$JENKINS_USER' user"
-if ! id $JENKINS_USER 2>&1 >/dev/null; then
+if ! id $JENKINS_USER >/dev/null 2>&1; then
 	INFO "Adding $JENKINS_USER"
 	useradd -d "$DEPLOYMENT_DIR" -r -s /sbin/nologin "$JENKINS_USER"
 fi

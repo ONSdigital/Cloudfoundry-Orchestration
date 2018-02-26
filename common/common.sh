@@ -85,7 +85,7 @@ sed </dev/null 2>&1 | grep -q GNU && SED_OPT='-r' || SED_OPT='-E'
 # Configure colour console - if possible
 #
 # Check if we support colours
-[ -n "$TERM" ] && COLOURS="`tput -T ${TERM:-dumb} colors 2>/dev/null`"
+[ -n "$TERM" ] && COLOURS="`tput -T ${TERM:-dumb} colors 2>/dev/null | grep -E '^[0-9]+$' || :`"
 
 # Colours may be negative 
 if [ -n "$COLOURS" -a $COLOURS -ge 8 ]; then

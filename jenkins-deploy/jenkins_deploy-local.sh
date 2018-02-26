@@ -243,27 +243,30 @@ fi
 
 INFO "Checking if we need to add the '$JENKINS_USER' user"
 if ! id $JENKINS_USER >/dev/null 2>&1; then
+	JENKINS_HOME="$DEPLOYMENT_DIR/home"
+
 	INFO "Adding $JENKINS_USER"
-	useradd -d "$DEPLOYMENT_DIR" -r -s /sbin/nologin "$JENKINS_USER"
+	useradd -d "$JENKINS_HOME" -m -r -s /sbin/nologin "$JENKINS_USER"
+
 fi
 
 cd "$DEPLOYMENT_DIR"
 
 if [ -z "$SSH_PRIVATE_KEY" ]; then
 	INFO 'Generating SSH keys'
-	ssh-keygen -qt rsa -f "$DEPLOYMENT_DIR/.ssh/id_rsa-$JENKINS_APPNAME" -N '' -C "$JENKINS_APPNAME"
+	ssh-keygen -qt rsa -f "$JENKINS_HOME/.ssh/id_rsa-$JENKINS_APPNAME" -N '' -C "$JENKINS_APPNAME"
 
-	cp "$DEPLOYMENT_DIR/.ssh/id_rsa-$JENKINS_APPNAME" ~root/.ssh/:
+	cp "$JENKINS_HOME/.ssh/id_rsa-$JENKINS_APPNAME" ~root/.ssh/:
 
-	chmod 0600 "$DEPLOYMENT_DIR/.ssh/id_rsa-$JENKINS_APPNAME" ~root/.ssh/$id_rsa-$JENKINS_APPNAME
+	chmod 0600 "$JENKINS_HOME/.ssh/id_rsa-$JENKINS_APPNAME" ~root/.ssh/$id_rsa-$JENKINS_APPNAME
 else
-	mkdir -p -m 0700 "$DEPLOYMENT_DIR/.ssh" ~root/.ssh
+	mkdir -p -m 0700 "$JENKINS_HOME/.ssh" ~root/.ssh
 
 	INFO 'Installing private keys'
-	cp "$SSH_PRIVATE_KEY" "$DEPLOYMENT_DIR/.ssh"
+	cp "$SSH_PRIVATE_KEY" "$JENKINS_HOME/.ssh"
 	cp "$SSH_PRIVATE_KEY" ~root/.ssh/
 
-	chmod 0600 "$DEPLOYMENT_DIR/.ssh/$SSH_PRIVATE_KEY_FILENAME" ~root/.ssh/$SSH_PRIVATE_KEY_FILENAME
+	chmod 0600 "$JENKINS_HOME/.ssh/$SSH_PRIVATE_KEY_FILENAME" ~root/.ssh/$SSH_PRIVATE_KEY_FILENAME
 fi
 
 if [ -n "$SSH_HOST_CONFIG" -a "$SSH_USER_CONFIG" ]; then

@@ -91,6 +91,16 @@ for i in `seq 1 $#`; do
 			JENKINS_SCRIPTS_REPO="$2"
 			shift 2
 			;;
+		--ssh-key)
+			# SSH private key
+			SSH_PRIVATE_KEY="$2"
+
+			[ -n "$SSH_PRIVATE_KEY" -a ! -f "$SSH_PRIVATE_KEY" ] && FATAL "Unable to find $SSH_PRIVATE_KEY"
+
+			SSH_PRIVATE_KEY_FILENAME="`basename "$SSH_PRIVATE_KEY"`"
+
+			shift 2
+			;;
 		--ssh-user-config)
 			# Used to configure ~/.ssh/config to use a specific SSH username to access the host
 			SSH_USER_CONFIG="$2"
@@ -310,22 +320,22 @@ EOF
 scan_ssh_hosts $JENKINS_CONFIG_REPO $JENKINS_CONFIG_SEED_REPO $JENKINS_SCRIPTS_REPO $SSH_KEYSCAN_HOSTS >known_hosts
 
 
-if [ ! -f "$ORIGINAL_DIR/id_rsa" ]; then
+if [ -n "$SSH_PRIVATE_KEY" ]; then
+	# If we have one in the correct location we copy it to the location we need
+	cp "$SSH_PRIVATE_KEY" "$SSH_PRIVATE_KEY_FILENAME"
+
+	# Ensure our key has the correct permissions, otherwise ssh-keygen fails
+	chmod 0600 "$SSH_PRIVATE_KEY_FILENAME"
+
+	INFO "Calculating SSH public key from 'id_rsa'"
+	ssh-keygen -f "$SSH_PRIVATE_KEY_FILENAME" -y >"$SSH_PRIVATE_KEY_FILENAME.pub"
+else
 	# If we don't have an SSH key we generate one
 	ssh-keygen -t rsa -f id_rsa -N '' -C "$JENKINS_APPNAME"
 
 	INFO 'You will need to add the following public key to the correct repositories to allow access'
 	INFO "We'll print this again at the end in case you miss this time"
 	cat id_rsa.pub
-else
-	# If we have one in the correct location we copy it to the location we need
-	cp "$ORIGINAL_DIR/id_rsa" id_rsa
-
-	# Ensure our key has the correct permissions, otherwise ssh-keygen fails
-	chmod 0600 id_rsa
-
-	INFO "Calculating SSH public key from 'id_rsa'"
-	ssh-keygen -f id_rsa -y >id_rsa.pub
 fi
 
 # Directory to hold our pre-run scripts - these scripts are executed prior to starting Jenkins
@@ -388,17 +398,17 @@ if [ -n "$SSH_HOST_CONFIG" -a "$SSH_USER_CONFIG" ]; then
 		cat >$REAL_HOME/.ssh/config <<EOF_INNER
 Host $SSH_HOST_CONFIG
 	User $SSH_USER_CONFIG
+	IdentifyFile ~/.ssh/${SSH_PRIVATE_KEY_FILENAME:-id_rsa}
 EOF_INNER
 	fi
 EOF_OUTER
 fi
 
-cat >>.profile.d/00_jenkins_preconfig.sh <<'EOF_OUTER'
-if [ -n "$SSH_HOST_CONFIG" -a "$SSH_USER_CONFIG" ]; then
-	INFO "Setting up SSH to connect to $SSH_HOST_CONFIG as $SSH_USER_CONFIG"
+cat >>.profile.d/00_jenkins_preconfig.sh <<EOF_OUTER
+# Set up SSH
+chmod 0600 ${SSH_PRIVATE_KEY_FILENAME:-id_rsa}
 
-	configure_ssh "$SSH_HOST_CONFIG" "$SSH_USER_CONFIG"
-fi
+mv ${SSH_PRIVATE_KEY_FILENAME:-id_rsa} $REAL_HOME/.ssh/
 
 # Create the ~/.ssh/known_hosts
 cat known_hosts >>$REAL_HOME/.ssh/known_hosts

@@ -123,6 +123,16 @@ for i in `seq 1 $#`; do
 			JENKINS_SCRIPTS_REPO="$2"
 			shift 2
 			;;
+		--ssh-key)
+			# SSH private key
+			SSH_PRIVATE_KEY="$2"
+
+			[ -n "$SSH_PRIVATE_KEY" -a ! -f "$SSH_PRIVATE_KEY" ] && FATAL "Unable to find $SSH_PRIVATE_KEY"
+
+			SSH_PRIVATE_KEY_FILENAME="`basename "$SSH_PRIVATE_KEY"`"
+
+			shift 2
+			;;
 		--ssh-host-config)
 			# Used to configure ~/.ssh/config to use a specific SSH username to access the host
 			SSH_HOST_CONFIG="$2"
@@ -199,6 +209,9 @@ done
 
 DEPLOYMENT_DIR="$INSTALL_BASE_DIR/$JENKINS_APPNAME"
 
+# AWS EC2 instances don't, by default, have a local/iptables firewall
+which >/dev/null 2>&1 firewall-cmd || unset FIX_FIREWALL
+
 if [ -z "$JENKINS_MASTER_URL" ]; then
 	# If we are not being deployed as a slave ensure we have the required repositories
 
@@ -234,12 +247,30 @@ if ! id $JENKINS_USER >/dev/null 2>&1; then
 	useradd -d "$DEPLOYMENT_DIR" -r -s /sbin/nologin "$JENKINS_USER"
 fi
 
-if [ -n "$SSH_HOST_CONFIG" -a "$SSH_USER_CONFIG" ]; then
-	INFO "Setting up SSH to connect to $SSH_HOST_CONFIG as $SSH_USER_CONFIG"
-	configure_ssh "$SSH_HOST_CONFIG" "$SSH_USER_CONFIG"
+cd "$DEPLOYMENT_DIR"
+
+if [ -z "$SSH_PRIVATE_KEY" ]; then
+	INFO 'Generating SSH keys'
+	ssh-keygen -qt rsa -f "$DEPLOYMENT_DIR/.ssh/id_rsa-$JENKINS_APPNAME" -N '' -C "$JENKINS_APPNAME"
+
+	cp "$DEPLOYMENT_DIR/.ssh/id_rsa-$JENKINS_APPNAME" ~root/.ssh/:
+
+	chmod 0600 "$DEPLOYMENT_DIR/.ssh/id_rsa-$JENKINS_APPNAME" ~root/.ssh/$id_rsa-$JENKINS_APPNAME
+else
+	mkdir -p -m 0700 "$DEPLOYMENT_DIR/.ssh" ~root/.ssh
+
+	INFO 'Installing private keys'
+	cp "$SSH_PRIVATE_KEY" "$DEPLOYMENT_DIR/.ssh"
+	cp "$SSH_PRIVATE_KEY" ~root/.ssh/
+
+	chmod 0600 "$DEPLOYMENT_DIR/.ssh/$SSH_PRIVATE_KEY_FILENAME" ~root/.ssh/$SSH_PRIVATE_KEY_FILENAME
 fi
 
-cd "$DEPLOYMENT_DIR"
+if [ -n "$SSH_HOST_CONFIG" -a "$SSH_USER_CONFIG" ]; then
+	INFO "Setting up SSH to connect to $SSH_HOST_CONFIG as $SSH_USER_CONFIG"
+	configure_ssh "$SSH_HOST_CONFIG" "$SSH_USER_CONFIG" "${SSH_PRIVATE_KEY_FILENAME:-id_rsa-$JENKINS_APPNAME}"
+fi
+
 
 if [ -n "$JENKINS_MASTER_URL" ]; then
 	INFO 'Deploying Jenkins slave'
@@ -491,9 +522,6 @@ if [ -f "/usr/lib/systemd/system/$JENKINS_APPNAME.service" ]; then
 	RELOAD_SYSTEMD=1
 fi
 
-INFO 'Generating SSH keys'
-ssh-keygen -qt rsa -f "$DEPLOYMENT_DIR/.ssh/id_rsa" -N '' -C "$JENKINS_APPNAME"
-
 INFO 'Installing service'
 cp --no-preserve=mode -f "$DEPLOYMENT_DIR/config/$JENKINS_APPNAME.service" "/usr/lib/systemd/system/$JENKINS_APPNAME.service"
 
@@ -526,8 +554,8 @@ chown -R "$JENKINS_USER:$JENKINS_GROUP" "$DEPLOYMENT_DIR/.ssh"
 
 if [ -n "$SELINUX_ENABLED" ]; then
 	INFO 'Fixing SELinux permissions'
-	chcon --reference=/etc/sysconfig/network "/etc/sysconfig/$JENKINS_APPNAME"
-	chcon --reference=/usr/lib/systemd/system/system.slice "/usr/lib/systemd/system/$JENKINS_APPNAME.service"
+	#chcon --reference=/etc/sysconfig/network "/etc/sysconfig/$JENKINS_APPNAME"
+	chcon --reference=/usr/lib/systemd/system/system.sysctl "/usr/lib/systemd/system/$JENKINS_APPNAME.service"
 
 	INFO 'Enabling SELinux reverse proxy permissions'
 	setsebool -P httpd_can_network_connect 1
@@ -545,7 +573,6 @@ fi
 # SSH will complain/fail without the correct permissions
 INFO 'Ensuring installation has the correct permissions'
 chmod 0700 "$DEPLOYMENT_DIR/.ssh"
-chmod 0600 "$DEPLOYMENT_DIR/.ssh/id_rsa"
 
 if [ -n "$JENKINS_MASTER_URL" ]; then
 	INFO 'Enabling and starting Jenkins slave'
@@ -562,29 +589,32 @@ INFO 'Jenkins should be available shortly'
 INFO
 INFO 'Please wait whilst things startup...'
 INFO
-INFO 'Whilst things are starting up you can add Jenkins public key to the Git repo(s)'
-INFO
-INFO 'SSH public key:'
-cat "$DEPLOYMENT_DIR/.ssh/id_rsa.pub"
-INFO
+if [ -f "$DEPLOYMENT_DIR/.ssh/id_rsa.pub" ]; then
+	INFO 'Whilst things are starting up you can add Jenkins public key to the Git repo(s)'
+	INFO
+	INFO 'SSH public key:'
+	cat "$DEPLOYMENT_DIR/.ssh/id_rsa.pub"
+	INFO
+fi
 
 if [ -z "$JENKINS_MASTER_URL" -a -n "$FIX_FIREWALL" -a -n "$CONFIGURE_SLAVE_CONNECTIVITY" ]; then
-	# If we are running a Jenkins master node we have to jump through a few more hoops to enable JNLP
-	INFO 'Determing JNLP port - this will take a few moments before Jenkins is able to provide this information'
 
-	for _a in `seq 1 $JENKINS_JNLP_CHECK_ATTEMPTS`; do
-		echo -n .
+	if [ -n "$FIX_FIREWALL" ]; then
+		# If we are running a Jenkins master node we have to jump through a few more hoops to enable JNLP
+		INFO 'Determing JNLP port - this will take a few moments before Jenkins is able to provide this information'
+		for _a in `seq 1 $JENKINS_JNLP_CHECK_ATTEMPTS`; do
+			echo -n .
 
-		# During initial we perform some basic log rotation, so we need to make sure the Jenkins log exists before we start inspecting it
-		if [ ! -f "/var/log/$JENKINS_APPNAME/$JENKINS_APPNAME.log" ]; then
-			sleep $JENKINS_JNLP_CHECK_DELAY
+			# During initial we perform some basic log rotation, so we need to make sure the Jenkins log exists before we start inspecting it
+			if [ ! -f "/var/log/$JENKINS_APPNAME/$JENKINS_APPNAME.log" ]; then
+				sleep $JENKINS_JNLP_CHECK_DELAY
 
-			continue
-		fi		
+				continue
+			fi		
 
-		# Our Jenkins setup automatically goes through and installs a number of plugins, once the plugins have been re-installed we restart a few times, so
-		# we need to check for the final restart before we start checking if Jenkins is up and running
-		if [ -z "$JENKINS_STARTED" ] && tail -f "/var/log/$JENKINS_APPNAME/$JENKINS_APPNAME.log" | awk '{
+			# Our Jenkins setup automatically goes through and installs a number of plugins, once the plugins have been re-installed we restart a few times, so
+			# we need to check for the final restart before we start checking if Jenkins is up and running
+			if [ -z "$JENKINS_STARTED" ] && tail -f "/var/log/$JENKINS_APPNAME/$JENKINS_APPNAME.log" | awk '{
 	if($0 ~ /Performing final restart/){
 		print "started";
 		s=1
@@ -596,42 +626,42 @@ if [ -z "$JENKINS_MASTER_URL" -a -n "$FIX_FIREWALL" -a -n "$CONFIGURE_SLAVE_CONN
 	printf(".")
 }'; then
 
-			INFO 'Jenkins has partially started now waiting for Jenkins to fully start ... '
-			JENKINS_STARTED=1
+				INFO 'Jenkins has partially started now waiting for Jenkins to fully start ... '
+				JENKINS_STARTED=1
+			fi
+
+			# Now Jenkins has started, we check for a header containing the JNLP port
+			JENKINS_JNLP_PORT="`curl --max-time 2 -si "http://127.0.0.1:8080/tcpSlaveAgentListener/" | awk '/^X-Jenkins-JNLP-Port:/{print $NF}'`"
+
+			# Once we have the port we can then configure the firewall
+			[ -n "$JENKINS_JNLP_PORT" ] && break
+
+			sleep $JENKINS_JNLP_CHECK_DELAY
+		done
+
+		echo fully started
+		[ -z "$JENKINS_JNLP_PORT" ] && FATAL 'Unable to determine Jenkins JNLP port, this can be completed later if required'
+
+		INFO 'Jenkins has now fully started'
+
+		# firewall-cmd isn't the most user friendly of tools
+		if firewall-cmd --info-service=jenkins-jnlp >/dev/null 2>&1; then
+			INFO 'Removing existing, local, firewall definition for Jenkins slave access'
+			firewall-cmd -q --permanent --delete-service=jenkins-jnlp
+
+			# If we don't reload the firewall when we come to add the service again it complains it already exists
+			firewall-cmd -q --reload
 		fi
 
-		# Now Jenkins has started, we check for a header containing the JNLP port
-		JENKINS_JNLP_PORT="`curl --max-time 2 -si "http://127.0.0.1:8080/tcpSlaveAgentListener/" | awk '/^X-Jenkins-JNLP-Port:/{print $NF}'`"
+		INFO 'Adding, local, firewall definition for Jenkins slave access'
+		# Add an exception to allow access via the JNLP port
+		firewall-cmd -q --permanent --new-service=jenkins-jnlp
+		firewall-cmd -q --permanent --service=jenkins-jnlp --add-port="$JENKINS_JNLP_PORT/tcp"
+		firewall-cmd -q --permanent --service=jenkins-jnlp --set-short='Jenkins Slave Connectivity'
+		firewall-cmd -q --permanent --add-service=jenkins-jnlp
 
-		# Once we have the port we can then configure the firewall
-		[ -n "$JENKINS_JNLP_PORT" ] && break
-
-		sleep $JENKINS_JNLP_CHECK_DELAY
-	done
-
-	echo fully started
-	[ -z "$JENKINS_JNLP_PORT" ] && FATAL 'Unable to determine Jenkins JNLP port, this can be completed later if required'
-
-	INFO 'Jenkins has now fully started'
-
-	# firewall-cmd isn't the most user friendly of tools
-	if firewall-cmd --info-service=jenkins-jnlp >/dev/null 2>&1; then
-		INFO 'Removing existing, local, firewall definition for Jenkins slave access'
-		firewall-cmd -q --permanent --delete-service=jenkins-jnlp
-
-		# If we don't reload the firewall when we come to add the service again it complains it already exists
+		INFO 'Reloading firewall'
 		firewall-cmd -q --reload
-	fi
-
-	INFO 'Adding, local, firewall definition for Jenkins slave access'
-	# Add an exception to allow access via the JNLP port
-	firewall-cmd -q --permanent --new-service=jenkins-jnlp
-	firewall-cmd -q --permanent --service=jenkins-jnlp --add-port="$JENKINS_JNLP_PORT/tcp"
-	firewall-cmd -q --permanent --service=jenkins-jnlp --set-short='Jenkins Slave Connectivity'
-	firewall-cmd -q --permanent --add-service=jenkins-jnlp
-
-	INFO 'Reloading firewall'
-	firewall-cmd -q --reload
 
 	INFO 'Jenkins will be available on the following URL(s):'
 	INFO

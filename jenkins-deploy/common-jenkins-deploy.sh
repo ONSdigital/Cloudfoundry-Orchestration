@@ -29,10 +29,11 @@ INVOCATION_ORIGINAL="$0 $@"
 
 #############################################
 configure_ssh(){
-	local user="$1"
-	local host="$2"
+	local host="$1"
+	local user="$2"
+	local key="$3"
 
-	[ -z "$user" -o -z "$host" ] && FATAL 'Either host or user missing'
+	[ -z "$user" -o -z "$host" -o -z "$key" ] && FATAL 'Host, user and/or key are missing'
 
 	for user in root $JENKINS_USER; do
 		local jenkins_home="`eval echo ~$user`"
@@ -99,6 +100,7 @@ configure_ssh(){
 			cat >>$jenkins_home/.ssh/config <<EOF
 Host $host
 	User $user
+	IdentityFile ~/.ssh/$key
 EOF
 
 		fi

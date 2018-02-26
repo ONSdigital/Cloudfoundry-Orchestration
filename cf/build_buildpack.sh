@@ -26,5 +26,8 @@ BUILDPACK_DIR="$2"
 
 install_scripts
 
+# Some buildpacks require custom options
+[ -n "$3" ] && shift 2
+
 # Error checking is done in the underlying script
-./Scripts/bin/build_offline_buildpack.sh "$BUILDPACK_NAME" "$BUILDPACK_DIR"
+./Scripts/bin/build_offline_buildpack.sh "$BUILDPACK_NAME" "$BUILDPACK_DIR" $@

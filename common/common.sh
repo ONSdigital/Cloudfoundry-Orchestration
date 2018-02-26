@@ -83,8 +83,7 @@ sed </dev/null 2>&1 | grep -q GNU && SED_OPT='-r' || SED_OPT='-E'
 
 #############################################
 # Configure colour console - if possible
-COLOURS="`tput colors`"
-
+#
 # Check if we support colours
 [ -n "$TERM" ] && COLOURS="`tput colors`"
 

@@ -24,7 +24,7 @@ COMMON_JENKINS_DEPLOY_SH="$BASE_DIR/common-jenkins-deploy.sh"
 if [ ! -f "$COMMON_JENKINS_DEPLOY_SH" ]; then
 	echo "Unable to find $COMMON_JENKINS_DEPLOY_SH"
 
-	exit 1  
+	exit 1
 fi
 
 . "$COMMON_JENKINS_DEPLOY_SH"
@@ -176,7 +176,7 @@ for i in `seq 1 $#`; do
 			shift 2
 			;;
 		--jenkins-base-install-dir)
-			# Base directory where we create the directory to hold Jenkins 
+			# Base directory where we create the directory to hold Jenkins
 			INSTALL_BASE_DIR="$2"
 			shift 2
 			;;
@@ -230,7 +230,7 @@ fi
 [ -d "$DEPLOYMENT_DIR" ] && FATAL "Deployment '$DEPLOYMENT_DIR' already exists, please remove"
 
 INFO "Creating $DEPLOYMENT_DIR layout"
-mkdir -p "$DEPLOYMENT_DIR"/{bin,config,.ssh}
+mkdir -p "$DEPLOYMENT_DIR"/{bin,config,home/.ssh}
 
 INFO 'Checking if all required packages are installed - this may take a while'
 install_packages $BASE_PACKAGES
@@ -247,7 +247,8 @@ if ! id $JENKINS_USER >/dev/null 2>&1; then
 
 	INFO "Adding $JENKINS_USER"
 	useradd -d "$JENKINS_HOME" -m -r -s /sbin/nologin "$JENKINS_USER"
-
+else
+	JENKINS_HOME="`eval echo ~$JENKINS_USER`"
 fi
 
 cd "$DEPLOYMENT_DIR"
@@ -279,7 +280,7 @@ if [ -n "$JENKINS_MASTER_URL" ]; then
 	INFO 'Deploying Jenkins slave'
 	JENKINS_APPNAME="$JENKINS_APPNAME-${JENKINS_SLAVE_NAME:-slave}"
 	JENKINS_AGENT_JAR="$DEPLOYMENT_DIR/bin/agent.jar"
-	
+
 	mkdir "$DEPLOYMENT_DIR/slave"
 
 	INFO 'Determining JNLP port'
@@ -376,7 +377,7 @@ EOF
 	fi
 
 	# Generate the Jenkins user's ~/.ssh/known_hosts
-	scan_ssh_hosts $JENKINS_CONFIG_REPO $JENKINS_CONFIG_SEED_REPO $JENKINS_SCRIPTS_REPO $SSH_KEYSCAN_HOSTS >"$DEPLOYMENT_DIR/.ssh/known_hosts"
+	scan_ssh_hosts $JENKINS_CONFIG_REPO $JENKINS_CONFIG_SEED_REPO $JENKINS_SCRIPTS_REPO $SSH_KEYSCAN_HOSTS >"$JENKINS_HOME/.ssh/known_hosts"
 
 	INFO 'Enabling and starting httpd'
 	systemctl start httpd
@@ -468,7 +469,7 @@ if [ -f '/var/log/$JENKINS_APPNAME/$JENKINS_APPNAME.log' ]; then
 fi
 EOF
 
-# Add our master/slave specific start command 
+# Add our master/slave specific start command
 if [ -z "$JENKINS_MASTER_URL" ]; then
 	# We are a master
 	cat >>"$DEPLOYMENT_DIR/bin/$JENKINS_APPNAME-startup.sh" <<EOF
@@ -549,11 +550,10 @@ and '/etc/logrotate.d/$JENKINS_APPNAME.rotate'
 
 EOF
 
-INFO 'Ensuring we have the correct ownership'
+INFO 'Ensuring we have the correct ownership and permissions'
 # We don't want to give the Jenkins user permission to write to anything other than the bits it has to be able to write to
 chown -R "$ROOT_USER:$ROOT_GROUP" "$DEPLOYMENT_DIR"
 chown -R "$JENKINS_USER:$JENKINS_GROUP" "$JENKINS_HOME" "/var/log/$JENKINS_APPNAME"
-chown -R "$JENKINS_USER:$JENKINS_GROUP" "$DEPLOYMENT_DIR/.ssh"
 
 if [ -n "$SELINUX_ENABLED" ]; then
 	INFO 'Fixing SELinux permissions'
@@ -573,9 +573,6 @@ else
  	chown -R "$JENKINS_USER:$JENKINS_GROUP" "$DEPLOYMENT_DIR/jenkins_home" "$DEPLOYMENT_DIR/jenkins_scripts"
 fi
 
-# SSH will complain/fail without the correct permissions
-INFO 'Ensuring installation has the correct permissions'
-chmod 0700 "$DEPLOYMENT_DIR/.ssh"
 
 if [ -n "$JENKINS_MASTER_URL" ]; then
 	INFO 'Enabling and starting Jenkins slave'
@@ -613,7 +610,7 @@ if [ -z "$JENKINS_MASTER_URL" -a -n "$FIX_FIREWALL" -a -n "$CONFIGURE_SLAVE_CONN
 				sleep $JENKINS_JNLP_CHECK_DELAY
 
 				continue
-			fi		
+			fi
 
 			# Our Jenkins setup automatically goes through and installs a number of plugins, once the plugins have been re-installed we restart a few times, so
 			# we need to check for the final restart before we start checking if Jenkins is up and running

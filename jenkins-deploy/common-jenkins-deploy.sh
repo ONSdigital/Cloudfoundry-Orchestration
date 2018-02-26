@@ -203,6 +203,9 @@ configure_git_repo(){
 
 	git pull predeploy_seed master;
 
+	# Ensure we are on the correct branch
+	git checkout master
+
 	cd -
 }
 

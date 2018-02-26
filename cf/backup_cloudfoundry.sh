@@ -3,7 +3,7 @@
 # Backs up an existing CF deployment
 #
 # Variables:
-#	GIT_BRANCH=CF Git branch
+#	CLOUDFOUNDRY_DEPLOYMENT_BRANCH=CF Git branch
 #	S3_BACKUP=[true|false]
 #	S3_BACKUP_BUCKET=S3 Backup Bucket Name
 #

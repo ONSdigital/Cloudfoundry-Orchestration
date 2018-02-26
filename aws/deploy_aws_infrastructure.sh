@@ -10,7 +10,7 @@
 #	DELETE_GIT_BRANCH=[true|false]
 #	DEPLOYMENT_COMMIT_MESSAGE=[Git commit deployment message]
 #	DEPLOYMENT_NAME=[Deployment Name]
-#	GIT_BRANCH=Git branch name
+#	CLOUDFOUNDRY_DEPLOYMENT_BRANCH=Git branch name
 
 set -ex
 
@@ -39,7 +39,7 @@ DEPLOYMENT_NAME="${1:-$DEPLOYMENT_NAME}"
 
 [ -f bin/protected_branch.sh -a -x bin/protected_branch.sh ] && ./bin/protected_branch.sh
 
-if [ x"$GIT_BRANCH" = x'origin/master' -a -z "$DEPLOYMENT_NAME" ]; then
+if [ x"$CLOUDFOUNDRY_DEPLOYMENT_BRANCH" = x'origin/master' -a -z "$DEPLOYMENT_NAME" ]; then
 	FATAL 'You have not provided a deployment name or selected a deployment branch'
 
 elif [ -n "$DEPLOYMENT_NAME" ]; then
@@ -52,10 +52,10 @@ elif [ -n "$DEPLOYMENT_NAME" ]; then
 		DEPLOYMENT_NAME="$NEW_DEPLOYMENT_NAME"
 	fi
 
-elif [ -n "$GIT_BRANCH" ]; then
-	DEPLOYMENT_NAME="`branch_to_name "$GIT_BRANCH"`"
+elif [ -n "$CLOUDFOUNDRY_DEPLOYMENT_BRANCH" ]; then
+	DEPLOYMENT_NAME="`branch_to_name "$CLOUDFOUNDRY_DEPLOYMENT_BRANCH"`"
 else
-	FATAL 'DEPLOYMENT_NAME and GIT_BRANCH have not been set'
+	FATAL 'DEPLOYMENT_NAME and CLOUDFOUNDRY_DEPLOYMENT_BRANCH have not been set'
 fi
 
 if [ x"$CREATE_DEPLOYMENT" = x'false' -a -d deployment ]; then

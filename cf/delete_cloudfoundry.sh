@@ -3,7 +3,7 @@
 # Delete a Cloudfoundry instance
 #
 # Variables:
-#	GIT_BRANCH=Git branch
+#	CLOUDFOUNDRY_DEPLOYMENT_BRANCH=Git branch
 
 set -e
 

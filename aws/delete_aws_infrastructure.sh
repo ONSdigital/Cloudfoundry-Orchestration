@@ -3,7 +3,7 @@
 # Assumes current working directory contains an checkout of an existing deployment of AWS infrastructure
 #
 # Variables:
-#	GIT_BRANCH=Git branch name
+#	CLOUDFOUNDRY_DEPLOYMENT_BRANCH=Git branch name
 #	DELETE_GIT_BRANCH=[true|false]
 #
 
@@ -27,7 +27,7 @@ fi
 
 
 ###########################################################
-DEPLOYMENT_NAME="`branch_to_name "$GIT_BRANCH"`"
+DEPLOYMENT_NAME="`branch_to_name "$CLOUDFOUNDRY_DEPLOYMENT_BRANCH"`"
 
 [ -f bin/protected_branch.sh -a -x bin/protected_branch.sh ] && ./bin/protected_branch.sh
 

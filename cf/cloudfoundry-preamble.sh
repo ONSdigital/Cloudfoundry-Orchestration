@@ -5,7 +5,7 @@
 # Variables:
 #	ADMIN_EMAIL_ADDRESS=[Administrator's email address]
 #	DEPLOYMENT_NAME=[Deployment Name]
-#	GIT_BRANCH=Git branch name
+#	CLOUDFOUNDRY_DEPLOYMENT_BRANCH=Git branch name
 #	SKIP_CF_SETUP=[true|false]
 
 set -e
@@ -29,15 +29,15 @@ fi
 
 [ -f Scripts/bin/protected_branch.sh -a -x Scripts/bin/protected_branch.sh ] && ./Scripts/bin/protected_branch.sh
 
-GIT_BRANCH="`git branch | awk '/^\* +/{print $NF}'`"
+CLOUDFOUNDRY_DEPLOYMENT_BRANCH="`git branch | awk '/^\* +/{print $NF}'`"
 
-[ -z "$GIT_BRANCH" ] && FATAL 'Unable to determine Git branch'
+[ -z "$CLOUDFOUNDRY_DEPLOYMENT_BRANCH" ] && FATAL 'Unable to determine Git branch'
 
-[ x"$GIT_BRANCH" = x'origin/master' ] && FATAL 'You have not selected a deployment branch'
+[ x"$CLOUDFOUNDRY_DEPLOYMENT_BRANCH" = x'origin/master' ] && FATAL 'You have not selected a deployment branch'
 
-DEPLOYMENT_NAME="`branch_to_name "$GIT_BRANCH"`"
+DEPLOYMENT_NAME="`branch_to_name "$CLOUDFOUNDRY_DEPLOYMENT_BRANCH"`"
 
-[ -z "$DEPLOYMENT_NAME" ] && FATAL "Unable to determine DEPLOYMENT_NAME from $GIT_BRANCH"
+[ -z "$DEPLOYMENT_NAME" ] && FATAL "Unable to determine DEPLOYMENT_NAME from $CLOUDFOUNDRY_DEPLOYMENT_BRANCH"
 
 # For AWS these are generated automatically
 # For VMware these are hand crafted

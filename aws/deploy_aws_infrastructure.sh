@@ -99,7 +99,7 @@ else
 	fi
 
 	# Create the AWS infrastructure
-	#"$CF_SCRIPTS_DIR/bin/create_aws_cloudformation.sh" "$DEPLOYMENT_NAME" || FAILED='true'
+	"$CF_SCRIPTS_DIR/bin/create_aws_cloudformation.sh" "$DEPLOYMENT_NAME" || FAILED='true'
 
 	ACTION='Creating'
 fi

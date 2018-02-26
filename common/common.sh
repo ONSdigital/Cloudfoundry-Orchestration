@@ -85,9 +85,10 @@ sed </dev/null 2>&1 | grep -q GNU && SED_OPT='-r' || SED_OPT='-E'
 # Configure colour console - if possible
 #
 # Check if we support colours
-[ -n "$TERM" ] && COLOURS="`tput colors`"
+[ -n "$TERM" ] && COLOURS="`tput -T ${TERM:-dumb}  colors`"
 
-if [ 0$COLOURS -ge 8 ]; then
+# Colours may be negative 
+if [ -n "$COLOURS" -a $COLOURS -ge 8 ]; then
 	FATAL_COLOUR="`tput setaf 1`"
 	INFO_COLOUR="`tput setaf 2`"
 	WARN_COLOUR="`tput setaf 3`"

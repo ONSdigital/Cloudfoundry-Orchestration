@@ -62,7 +62,7 @@ EOF
 
 
 git_changes(){
-	git status --pocelain | awk '!/^A /{
+	git status --porcelain | awk '!/^A /{
 		print $0
 		gsub(/^..? /,"")
 	

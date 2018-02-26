@@ -238,7 +238,7 @@ install_packages $BASE_PACKAGES
 if [ -n "$FIX_SELINUX" ]; then
 	# Check if we have SELinux enabled
 	INFO 'Determining SELinux status'
-	sestatus >/dev/null 2>&1 && SELINUX_ENABLED=true
+	sestatus 2>&1 | grep -Eq '^SELinux status:.*disabled$' && unset SELINUX_ENABLED
 fi
 
 INFO "Checking if we need to add the '$JENKINS_USER' user"
@@ -554,8 +554,8 @@ chown -R "$JENKINS_USER:$JENKINS_GROUP" "$DEPLOYMENT_DIR/.ssh"
 
 if [ -n "$SELINUX_ENABLED" ]; then
 	INFO 'Fixing SELinux permissions'
-	#chcon --reference=/etc/sysconfig/network "/etc/sysconfig/$JENKINS_APPNAME"
-	chcon --reference=/usr/lib/systemd/system/systemd-sysctl.service "/usr/lib/systemd/system/$JENKINS_APPNAME.service"
+	chcon --reference=/etc/sysconfig/network "/etc/sysconfig/$JENKINS_APPNAME"
+	chcon --reference=/usr/lib/systemd/system/system.slice"/usr/lib/systemd/system/$JENKINS_APPNAME.service"
 
 	INFO 'Enabling SELinux reverse proxy permissions'
 	setsebool -P httpd_can_network_connect 1

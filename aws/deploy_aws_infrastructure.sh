@@ -12,7 +12,7 @@
 #	DEPLOYMENT_NAME=[Deployment Name]
 #	GIT_BRANCH=Git branch name
 
-set -e
+set -ex
 
 
 ###########################################################
@@ -71,7 +71,7 @@ else
 	INFO 'Checking for existing Git branch'
 
 	if git branch -r | grep -qE "\*? +[^/]+/$DEPLOYMENT_NAME$"; then
-		WARN 'Existing Git branch exists'
+		INFO 'Existing Git branch exists'
 		git branch | grep -qE "\* +$DEPLOYMENT_NAME$" || FATAL "$DEPLOYMENT_NAME already exists remotely, but has not been checked out locally"
 	else
 		INFO 'Creating new Git branch'

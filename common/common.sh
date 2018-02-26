@@ -88,7 +88,7 @@ sed </dev/null 2>&1 | grep -q GNU && SED_OPT='-r' || SED_OPT='-E'
 [ -n "$TERM" ] && COLOURS="`tput -T ${TERM:-dumb} colors 2>/dev/null | grep -E '^[0-9]+$' || :`"
 
 # Colours may be negative 
-if [ -n "$COLOURS" -a $COLOURS -ge 8 ]; then
+if [ -n "$COLOURS" ] && [ $COLOURS -ge 8 ]; then
 	FATAL_COLOUR="`tput setaf 1`"
 	INFO_COLOUR="`tput setaf 2`"
 	WARN_COLOUR="`tput setaf 3`"

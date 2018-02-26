@@ -552,7 +552,7 @@ EOF
 INFO 'Ensuring we have the correct ownership'
 # We don't want to give the Jenkins user permission to write to anything other than the bits it has to be able to write to
 chown -R "$ROOT_USER:$ROOT_GROUP" "$DEPLOYMENT_DIR"
-chown -R "$JENKINS_USER:$JENKINS_GROUP" "/var/log/$JENKINS_APPNAME"
+chown -R "$JENKINS_USER:$JENKINS_GROUP" "$JENKINS_HOME" "/var/log/$JENKINS_APPNAME"
 chown -R "$JENKINS_USER:$JENKINS_GROUP" "$DEPLOYMENT_DIR/.ssh"
 
 if [ -n "$SELINUX_ENABLED" ]; then

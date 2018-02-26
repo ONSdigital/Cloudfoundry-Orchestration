@@ -663,6 +663,8 @@ if [ -z "$JENKINS_MASTER_URL" -a -n "$FIX_FIREWALL" -a -n "$CONFIGURE_SLAVE_CONN
 		INFO 'Reloading firewall'
 		firewall-cmd -q --reload
 
+	fi
+
 	INFO 'Jenkins will be available on the following URL(s):'
 	INFO
 	ip addr list | awk '/inet / && !/127.0.0.1/{gsub("/24",""); printf("http://%s\n",$2)}'

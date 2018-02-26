@@ -555,7 +555,7 @@ chown -R "$JENKINS_USER:$JENKINS_GROUP" "$DEPLOYMENT_DIR/.ssh"
 if [ -n "$SELINUX_ENABLED" ]; then
 	INFO 'Fixing SELinux permissions'
 	#chcon --reference=/etc/sysconfig/network "/etc/sysconfig/$JENKINS_APPNAME"
-	chcon --reference=/usr/lib/systemd/system/system.sysctl "/usr/lib/systemd/system/$JENKINS_APPNAME.service"
+	chcon --reference=/usr/lib/systemd/system/systemd-sysctl.service "/usr/lib/systemd/system/$JENKINS_APPNAME.service"
 
 	INFO 'Enabling SELinux reverse proxy permissions'
 	setsebool -P httpd_can_network_connect 1

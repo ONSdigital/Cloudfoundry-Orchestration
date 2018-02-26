@@ -127,9 +127,9 @@ if [ ! -f plugin-list ]; then
 	INFO 'Creating plugin-list'
 	mv plugin-list.new plugin-list
 
-elif ! diff -q plugin-list.new plugin-list; then
+elif ! diff -q plugin-list plugin-list.new; then
 	INFO 'Plugins have changed'
-	diff -u plugin-list.new plugin-list
+	diff -u plugin-list plugin-list.new
 
 	INFO 'Updating plugin-list'
 	mv -f plugin-list.new plugin-list

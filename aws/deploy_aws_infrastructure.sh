@@ -104,8 +104,6 @@ else
 	ACTION='Creating'
 fi
 
-pwd
-
 INFO 'Adding all new files/directories to Git'
 git add --all
 

@@ -35,13 +35,6 @@ if [ -z "$GIT_COMMIT_MESSAGE" ]; then
 	[ x"$CLOUDFOUNDRY_DEPLOYMENT_BRANCH" = x'origin/master' ] && GIT_COMMIT_MESSAGE="New deployment $DEPLOYMENT_NAME" || GIT_COMMIT_MESSAGE="Updated deployment $DEPLOYMENT_NAME"
 fi
 
-# CF & Bosh CLIs may have a version suffix
-[ -f work/bin/bosh ] && BOSH_CLI='work/bin/bosh' || BOSH_CLI="`find work/bin -name bosh-\*`"
-[ -f work/bin/cf ] && CF_CLI='work/bin/cf' || CF_CLI="`find work/bin -name cf-\*`"
-
-[ -z "$CF_CLI" -o ! -f "$CF_CLI" ] || FATAL 'CF CLI does not exist'
-[ -z "$BOSH_CLI" -o ! -f "$BOSH_CLI" ] || FATAL 'BOSH CLI does not exist'
-
 # Deploy Cloudfoundry instance
 ./Scripts/bin/deploy_cloudfoundry.sh "$DEPLOYMENT_NAME" || FAILED=1
 

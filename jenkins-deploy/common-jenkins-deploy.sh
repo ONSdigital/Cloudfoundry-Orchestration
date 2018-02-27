@@ -68,7 +68,7 @@ configure_ssh(){
 		fi
 
 		if [ -d $jenkins_home/.ssh ]; then
-			mkdir -p 0600 $jenkins_home/.ssh
+			mkdir -pm 0600 $jenkins_home/.ssh
 
 			chown $user $jenkins_home/.ssh
 		fi

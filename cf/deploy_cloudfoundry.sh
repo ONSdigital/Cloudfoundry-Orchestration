@@ -18,6 +18,7 @@ set -e
 BASE_DIR="`dirname $0`"
 CF_PREAMBLE="$BASE_DIR/cloudfoundry-preamble.sh"
 
+
 if [ ! -f "$CF_PREAMBLE" ]; then
 	echo "Unable to find $CF_PREAMBLE"
 
@@ -34,6 +35,10 @@ fi
 if [ -z "$GIT_COMMIT_MESSAGE" ]; then
 	[ x"$CLOUDFOUNDRY_DEPLOYMENT_BRANCH" = x'origin/master' ] && GIT_COMMIT_MESSAGE="New deployment $DEPLOYMENT_NAME" || GIT_COMMIT_MESSAGE="Updated deployment $DEPLOYMENT_NAME"
 fi
+
+[ -d blobs ] || mkdir -p blobs
+[ -d builds ] && find builds -type f -exec mv "{}" blobs/ \;
+[ -d downloads ] && find downloads -type f -exec mv "{}" blobs/ \;
 
 # Deploy Cloudfoundry instance
 ./Scripts/bin/deploy_cloudfoundry.sh "$DEPLOYMENT_NAME" || FAILED=1

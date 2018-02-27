@@ -39,7 +39,8 @@ fi
 ./Scripts/bin/deploy_cloudfoundry.sh "$DEPLOYMENT_NAME" || FAILED=1
 
 # Generate admin credentials if we don't already have some
-if [ -z "$FAILED" -a -n "$ADMIN_EMAIL_ADDRESS" -a -n "$SKIP_CF_SETUP" -a x"$SKIP_CF_SETUP" != x"true" ]; then
+#if [ -z "$FAILED" -a -n "$ADMIN_EMAIL_ADDRESS" -a -n "$SKIP_CF_SETUP" -a x"$SKIP_CF_SETUP" != x"true" ]; then
+if [ -z "$FAILED" ] && [ -z "$SKIP_CF_SETUP" -o x"$SKIP_CF_SETUP" = x"false" ]; then
 	./Scripts/bin/setup_cf.sh "$DEPLOYMENT_NAME" "${ADMIN_EMAIL_ADDRESS:-NONE}" || FAILED=1
 
 #	[ -f "deployment/$DEPLOYMENT_NAME/cf-credentials-admin.sh" ] && git add "deployment/$DEPLOYMENT_NAME/cf-credentials-admin.sh" 

@@ -31,6 +31,6 @@ EOF
 
 [ -d releases ] && subdir='vendor' || subdir='releases'
 
-for _d in `find $subdir-name \*release`; do
+for _d in `find $subdir -name \*release`; do
 	find $_d -name "${ACTION}_blobs.sh" -exec {} \;
 done

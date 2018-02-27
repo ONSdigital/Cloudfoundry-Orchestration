@@ -25,7 +25,7 @@ install_scripts
 
 ACTION="${1:-build}"
 
-grep -Eq '^(build|download)$' <<EOF || FATAL "Incorrect action. Valid action: build or download'
+grep -Eq '^(build|download)$' <<EOF || FATAL 'Incorrect action. Valid action: build or download'
 $ACTION
 EOF
 

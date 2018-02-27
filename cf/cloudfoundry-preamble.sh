@@ -43,6 +43,6 @@ DEPLOYMENT_NAME="`branch_to_name "$CLOUDFOUNDRY_DEPLOYMENT_BRANCH"`"
 # For VMware these are hand crafted
 [ -d "deployment/$DEPLOYMENT_NAME/outputs" ] || FATAL 'Deployment outputs do not exist'
 
-if [ x"$SKIP_CF_SETUP" != x'true' -a ! -f "deployment/$DEPLOYMENT_NAME/cf-credentials-admin.sh" ] && [ -z "$ADMIN_EMAIL_ADDRESS" ]; then
-	FATAL 'No admin email address provided'
-fi
+#if [ x"$SKIP_CF_SETUP" != x'true' -a ! -f "deployment/$DEPLOYMENT_NAME/cf-credentials-admin.sh" ] && [ -z "$ADMIN_EMAIL_ADDRESS" ]; then
+#	FATAL 'No admin email address provided'
+#fi

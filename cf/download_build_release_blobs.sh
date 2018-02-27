@@ -30,7 +30,7 @@ $ACTION
 EOF
 
 [ -d releases ] && subdir='releases' || subdir='vendor'
-set -x
+
 for _d in `find $subdir -name \*release`; do
 	find $_d -name "${ACTION}_blobs.sh" -exec {} \;
 done

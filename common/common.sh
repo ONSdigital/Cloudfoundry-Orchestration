@@ -15,17 +15,17 @@ set -e
 
 #############################################
 FATAL(){
-	printf '%bFATAL %s%b\n' "$FATAL_COLOR" "$@" "$NORMAL_COLOUR"
+	printf '%bFATAL %s%b\n' "$FATAL_COLOUR" "$@" "$NORMAL_COLOUR"
 
 	exit 1
 }
 
 WARN(){
-	printf '%bWARN %s%b\n' "$WARN_COLOR" "$@" "$NORMAL_COLOUR"
+	printf '%bWARN %s%b\n' "$WARN_COLOUR" "$@" "$NORMAL_COLOUR"
 }
 
 INFO(){
-	printf '%bINFO %s%b\n' "$INFO_COLOR" "$@" "$NORMAL_COLOUR"
+	printf '%bINFO %s%b\n' "$INFO_COLOUR" "$@" "$NORMAL_COLOUR"
 }
 
 branch_to_name(){
@@ -59,7 +59,7 @@ if [ -t 1 ]; then
 		FATAL_COLOUR="`tput setaf 1`"
 		INFO_COLOUR="`tput setaf 2`"
 		WARN_COLOUR="`tput setaf 3`"
-		DEBUG_COLOR="`tput setaf 4`"
+		DEBUG_COLOUR="`tput setaf 4`"
 		NORMAL_COLOUR="`tput sgr0`"
 	fi
 elif [ -n "$TERM" ] && echo "$TERM" | grep -Eq '^(xterm|rxvt)'; then

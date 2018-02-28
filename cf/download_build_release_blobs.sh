@@ -32,7 +32,9 @@ EOF
 [ -d releases ] && subdir='releases' || subdir='vendor'
 
 INFO 'Finding releases'
-for _d in `find $subdir -mindepth 1 -maxdepth 1 -type d -name \*release`; do
+cd $subdir
+
+for _d in `find . -mindepth 1 -maxdepth 1 -type d -name \*release`; do
 	if [ -x "$_d/bin/${ACTION}_blobs.sh" ]; then
 		INFO ". executing $_d/bin/${ACTION}_blobs.sh"
 		"$_d/bin/${ACTION}_blobs.sh" "blobs/$_d"

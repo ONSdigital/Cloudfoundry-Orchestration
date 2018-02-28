@@ -18,15 +18,6 @@ set -e
 BASE_DIR="`dirname $0`"
 CF_PREAMBLE="$BASE_DIR/cloudfoundry-preamble.sh"
 
-tset
-echo $TERM
-(
-env
-set
-) | sort
-
-tput colors
-
 if [ ! -f "$CF_PREAMBLE" ]; then
 	echo "Unable to find $CF_PREAMBLE"
 

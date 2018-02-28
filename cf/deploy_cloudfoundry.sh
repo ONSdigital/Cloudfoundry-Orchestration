@@ -23,7 +23,8 @@ echo $TERM
 env
 set
 ) | sort
-exit 1
+
+tput colors
 
 if [ ! -f "$CF_PREAMBLE" ]; then
 	echo "Unable to find $CF_PREAMBLE"

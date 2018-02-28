@@ -46,6 +46,33 @@ install_scripts(){
 }
 #############################################
 
+#############################################
+# Configure colour console - if possible
+#
+# Check if we support colours
+set -x
+if [ -t 1 ]; then
+	COLOURS="`tput -T ${TERM:-dumb} colors 2>/dev/null | grep -E '^[0-9]+$' || :`"
+
+	# Colours may be negative
+	if [ -n "$COLOURS" ] && [ $COLOURS -ge 8 ]; then
+		FATAL_COLOUR="`tput setaf 1`"
+		INFO_COLOUR="`tput setaf 2`"
+		WARN_COLOUR="`tput setaf 3`"
+		DEBUG_COLOR="`tput setaf 4`"
+		NORMAL_COLOUR="`tput sgr0`"
+	fi
+elif [ -n "$TERM" ] && echo "$TERM" | grep -Eq '^(xterm|rxvt)'; then
+	# We aren't running under a proper terminal, but we may be running under something pretending to be a terminal
+	FATAL_COLOUR='\e[31;1m'
+	INFO_COLOUR='\e[32;1m'
+	WARN_COLOUR='\e[33;1m'
+	DEBUG_COLOUR='\e[34;1m'
+	NORMAL_COLOUR='\e[0m'
+else
+	INFO 'Not setting any colours as we have neither /dev/tty nor $TERM available'
+fi
+#############################################
 
 #############################################
 # Git config
@@ -75,33 +102,6 @@ fi
 # Some BSD sed variants don't handle -r they use -E for extended regular expression
 sed </dev/null 2>&1 | grep -q GNU && SED_OPT='-r' || SED_OPT='-E'
 
-#############################################
-# Configure colour console - if possible
-#
-# Check if we support colours
-set -x
-if [ -t 1 ]; then
-	COLOURS="`tput -T ${TERM:-dumb} colors 2>/dev/null | grep -E '^[0-9]+$' || :`"
-
-	# Colours may be negative 
-	if [ -n "$COLOURS" ] && [ $COLOURS -ge 8 ]; then
-		FATAL_COLOUR="`tput setaf 1`"
-		INFO_COLOUR="`tput setaf 2`"
-		WARN_COLOUR="`tput setaf 3`"
-		DEBUG_COLOR="`tput setaf 4`"
-		NORMAL_COLOUR="`tput sgr0`"
-	fi
-elif [ -n "$TERM" ] && echo "$TERM" | grep -Eq '^(xterm|rxvt)'; then
-	# We aren't running under a proper terminal, but we may be running under something pretending to be a terminal
-	FATAL_COLOUR='\e[31;1m'
-	INFO_COLOUR='\e[32;1m'
-	WARN_COLOUR='\e[33;1m'
-	DEBUG_COLOUR='\e[34;1m'
-	NORMAL_COLOUR='\e[0m'
-else
-	INFO 'Not setting any colours as we have neither /dev/tty nor $TERM available'
-fi
-#############################################
 
 #############################################
 # Ensure we have a sensible umask

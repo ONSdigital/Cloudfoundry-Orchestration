@@ -29,8 +29,6 @@ grep -Eq '^(build|download)$' <<EOF || FATAL 'Incorrect action. Valid action: bu
 $ACTION
 EOF
 
-BLOBS_DIR="$PWD/blobs"
-
 [ -d releases ] && subdir='releases' || subdir='vendor'
 
 INFO 'Finding releases'
@@ -38,6 +36,6 @@ cd "$subdir"
 for _d in `find . -mindepth 1 -maxdepth 1 -type d -name \*release`; do
 	if [ -x "$_d/bin/${ACTION}_blobs.sh" ]; then
 		INFO ". executing $_d/bin/${ACTION}_blobs.sh"
-		"$_d/bin/${ACTION}_blobs.sh" "$BLOBS_DIR/$_d"
+		"$_d/bin/${ACTION}_blobs.sh"
 	fi
 done

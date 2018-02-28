@@ -38,9 +38,6 @@ fi
 INFO 'Creating required directories'
 [ -d blobs ] || mkdir -p blobs
 
-[ -d builds ] && find builds -type f -exec mv "{}" blobs/ \;
-[ -d downloads ] && find downloads -type f -exec mv "{}" blobs/ \;
-
 # Deploy Cloudfoundry instance
 ./Scripts/bin/deploy_cloudfoundry.sh "$DEPLOYMENT_NAME" || FAILED=1
 

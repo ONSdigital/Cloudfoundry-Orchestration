@@ -35,7 +35,9 @@ if [ -z "$GIT_COMMIT_MESSAGE" ]; then
 	[ x"$CLOUDFOUNDRY_DEPLOYMENT_BRANCH" = x'origin/master' ] && GIT_COMMIT_MESSAGE="New deployment $DEPLOYMENT_NAME" || GIT_COMMIT_MESSAGE="Updated deployment $DEPLOYMENT_NAME"
 fi
 
+INFO 'Creating required directories'
 [ -d blobs ] || mkdir -p blobs
+
 [ -d builds ] && find builds -type f -exec mv "{}" blobs/ \;
 [ -d downloads ] && find downloads -type f -exec mv "{}" blobs/ \;
 

@@ -15,17 +15,17 @@ set -e
 
 #############################################
 FATAL(){
-	printf '%b%s%b\n' "$FATAL_COLOR" "$@" "$NORMAL_COLOUR"
+	printf '%bFATAL %s%b\n' "$FATAL_COLOR" "$@" "$NORMAL_COLOUR"
 
 	exit 1
 }
 
 WARN(){
-	printf '%b%s%b\n' "$WARN_COLOR" "$@" "$NORMAL_COLOUR"
+	printf '%bWARN %s%b\n' "$WARN_COLOR" "$@" "$NORMAL_COLOUR"
 }
 
 INFO(){
-	printf '%b%s%b\n' "$INFO_COLOR" "$@" "$NORMAL_COLOUR"
+	printf '%bINFO %s%b\n' "$INFO_COLOR" "$@" "$NORMAL_COLOUR"
 }
 
 branch_to_name(){

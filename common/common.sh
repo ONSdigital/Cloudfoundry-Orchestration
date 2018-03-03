@@ -15,17 +15,17 @@ set -e
 
 #############################################
 FATAL(){
-	printf '%bFATAL %s%b\n' "$FATAL_COLOUR" "$@" "$NORMAL_COLOUR"
+	printf '%bFATAL %s%b\n' "$FATAL_COLOUR" "$@" "$NORMAL_COLOUR" >&2
 
 	exit 1
 }
 
 WARN(){
-	printf '%bWARN %s%b\n' "$WARN_COLOUR" "$@" "$NORMAL_COLOUR"
+	printf '%bWARN %s%b\n' "$WARN_COLOUR" "$@" "$NORMAL_COLOUR" >&2
 }
 
 INFO(){
-	printf '%bINFO %s%b\n' "$INFO_COLOUR" "$@" "$NORMAL_COLOUR"
+	printf '%bINFO %s%b\n' "$INFO_COLOUR" "$@" "$NORMAL_COLOUR" >&2
 }
 
 branch_to_name(){
@@ -63,11 +63,12 @@ if [ -t 1 ]; then
 	fi
 elif [ -n "$TERM" ] && echo "$TERM" | grep -Eq '^(xterm|rxvt)'; then
 	# We aren't running under a proper terminal, but we may be running under something pretending to be a terminal
-	FATAL_COLOUR='\e[31;1m'
-	INFO_COLOUR='\e[32;1m'
-	WARN_COLOUR='\e[33;1m'
-	DEBUG_COLOUR='\e[34;1m'
-	NORMAL_COLOUR='\e[0m'
+	# Dash Debian/Ubuntu's shell doesn't support \e or \x, so we have to use an alternative method
+	FATAL_COLOUR='\033[31;1m'
+	INFO_COLOUR='\033[32;1m'
+	WARN_COLOUR='\033[33;1m'
+	DEBUG_COLOUR='\033[34;1m'
+	NORMAL_COLOUR='\033[0m'
 else
 	INFO 'Not setting any colours as we have neither /dev/tty nor $TERM available'
 fi

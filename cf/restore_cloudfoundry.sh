@@ -21,7 +21,7 @@ if [ ! -f "$CF_PREAMBLE" ]; then
 	exit 1
 fi
 
-"$CF_PREAMBLE"
+. "$CF_PREAMBLE"
 ###########################################################
 
 install_scripts

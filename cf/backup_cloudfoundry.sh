@@ -10,7 +10,6 @@
 
 set -e
 
-
 ###########################################################
 #
 # Functionality shared between all of the Jenkins deployment scripts
@@ -23,7 +22,7 @@ if [ ! -f "$CF_PREAMBLE" ]; then
 	exit 1
 fi
 
-"$CF_PREAMBLE"
+. "$CF_PREAMBLE"
 ###########################################################
 
 # Backup CF databases

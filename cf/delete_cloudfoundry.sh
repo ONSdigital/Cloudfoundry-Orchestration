@@ -20,7 +20,7 @@ if [ ! -f "$CF_PREAMBLE" ]; then
 	exit 1
 fi
 
-"$CF_PREAMBLE"
+. "$CF_PREAMBLE"
 ###########################################################
 
 [ -f bin/protected_branch.sh -a -x bin/protected_branch.sh ] && ./bin/protected_branch.sh

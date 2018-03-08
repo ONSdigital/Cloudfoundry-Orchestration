@@ -28,7 +28,7 @@ fi
 # Backup CF databases
 ./Scripts/bin/backup_cloudfoundry-databases.sh "$DEPLOYMENT_NAME" || DATABASE_FAILED=1
 
-if [ x"$S3_BACKUP" = x'true' ]; then
+if [ -n "$S3_BACKUP_BUCKET" ]; then
 	[ -z "$S3_BACKUP_BUCKET" ] && FATAL 'No S3 backup bucket name provided'
 
 	# Backup S3 buckets

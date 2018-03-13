@@ -7,7 +7,6 @@
 #	JENKINS_STABLE_WAR_URL=Jenkins stable WAR download URL
 #	JENKINS_LATEST_WAR_URL=Jenkins latest WAR download URL
 #
-#set +x
 set -e
 
 # Load the common Jenkins bits

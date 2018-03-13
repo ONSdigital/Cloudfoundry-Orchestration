@@ -6,7 +6,6 @@
 #	CLEANUP_TYPE=[AWS|Bosh|CF|Python|Ruby|Buildpacks|ALL]
 set -e
 
-
 ###########################################################
 #
 # Functionality shared between all of the Jenkins deployment scripts

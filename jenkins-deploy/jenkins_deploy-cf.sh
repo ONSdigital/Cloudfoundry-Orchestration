@@ -8,7 +8,6 @@
 
 set -e
 
-
 ###########################################################
 #
 # Functionality shared between all of the Jenkins deployment scripts

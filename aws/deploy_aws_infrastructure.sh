@@ -12,8 +12,7 @@
 #	DEPLOYMENT_NAME=[Deployment Name]
 #	CLOUDFOUNDRY_DEPLOYMENT_BRANCH=Git branch name
 
-set -ex
-
+set -e
 
 ###########################################################
 #

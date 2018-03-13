@@ -12,7 +12,6 @@
 #	JENKINS_JNLP_CHECK_DELAY==[Delay, in seconds, between Jenkins availability check]
 #	JENKINS_JNLP_CHECK_ATTEMPTS=[Number of checks for Jenkins availability before giving up]
 #	... other variables are used, but these can be seen under the 'Parse options' section
-
 set -e
 
 ###########################################################

@@ -409,7 +409,7 @@ cat >"$DEPLOYMENT_DIR/bin/update.sh" <<EOF
 #
 # Original invocation: $INVOCATION_ORIGINAL
 #
-if [ -z "$1" -o x"$1" != x'safe' ]; then
+if [ -z "\$1" -o x"\$1" != x'safe' ]; then
 	echo Warning...
 	echo ... this script was automatically generated during the installation process
 	echo ... it may have lost any quoting and escaping, so please check the script
@@ -418,7 +418,7 @@ if [ -z "$1" -o x"$1" != x'safe' ]; then
 	echo To run the script after you have confirmed it will work, or after changes
 	echo have been made to make it work please run it with the 'safe' option, eg
 	echo
-	echo $0 safe
+	echo \$0 safe
 
 	exit 1
 fi

@@ -79,7 +79,7 @@ else
 		INFO 'Installing vendored repositories'
 		for _r in `ls vendor/`; do
 			if [ ! -d "$_r" ]; then
-				echo "$_r" | grep -Eq -- '-release' && dst="releases/$_r" || dst="./$_r"
+				echo "$_r" | grep -Eq -- '-release' && dst="releases/$_r" || dst="$_r"
 				INFO ". installing $_r to $dst"
 
 				[ -d "$_r" ] || mkdir -p "$dst"
